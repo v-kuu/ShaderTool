@@ -2,14 +2,25 @@ cmake_minimum_required(VERSION 3.20)
 project(ShaderTool LANGUAGES CXX)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 include(FetchContent)
+
 FetchContent_Declare(SDL3
 	GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
 	GIT_TAG release-3.2.26
 	GIT_SHALLOW ON
 )
 
-FetchContent_MakeAvailable(SDL3)
+FetchContent_Declare(
+	glm
+	GIT_REPOSITORY https://github.com/g-truc/glm.git
+	GIT_TAG 0af55ccecd98d4e5a8d1fad7de25ba429d60e863
+)
+
+FetchContent_MakeAvailable(SDL3 glm)
 
 add_executable(ShaderTool
 	src/main.cpp
@@ -17,9 +28,8 @@ add_executable(ShaderTool
 
 target_link_libraries(ShaderTool
 	PRIVATE SDL3::SDL3
+	PRIVATE glm::glm
 )
-
-target_compile_features(ShaderTool PRIVATE cxx_std_20)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 	target_compile_options(ShaderTool PRIVATE -Wall -Wextra -Werror)
