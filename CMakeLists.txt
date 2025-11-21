@@ -20,7 +20,22 @@ FetchContent_Declare(
 	GIT_TAG 0af55ccecd98d4e5a8d1fad7de25ba429d60e863
 )
 
-FetchContent_MakeAvailable(SDL3 glm)
+FetchContent_Declare(
+	VulkanHeaders
+	GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers.git
+	GIT_TAG v1.4.334
+)
+
+set(BUILD_STATIC_LOADER ON CACHE BOOL "Build static Vulkan loader" FORCE)
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+
+FetchContent_Declare(
+	VulkanLoader
+	GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Loader.git
+	GIT_TAG v1.4.333
+)
+
+FetchContent_MakeAvailable(SDL3 glm VulkanHeaders VulkanLoader)
 
 add_executable(ShaderTool
 	src/main.cpp
@@ -29,6 +44,7 @@ add_executable(ShaderTool
 target_link_libraries(ShaderTool
 	PRIVATE SDL3::SDL3
 	PRIVATE glm::glm
+	PRIVATE Vulkan::Vulkan
 )
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")

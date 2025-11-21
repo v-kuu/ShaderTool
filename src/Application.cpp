@@ -2,36 +2,89 @@
 
 void Application::run(void)
 {
-	initWindow();
+	_initWindow();
+	_initVulkan();
+	_mainLoop();
+	_cleanup();
 }
 
-void Application::initWindow(void)
+void Application::_initWindow(void)
 {
 	if (!SDL_Init(SDL_INIT_VIDEO))
 		throw (std::runtime_error("Unable to initialize SDL"));
 
-	SDL_DisplayID id = SDL_GetPrimaryDisplay();
-	if (id == 0)
-		throw (std::runtime_error("Failed to get display"));
-
-	SDL_Rect bounds;
-	if (!SDL_GetDisplayBounds(id, &bounds))
-		throw (std::runtime_error("Failed to get dislay bounds"));
-
-
+	_sdl_window = SDL_CreateWindow("ShaderTool", 1920, 1080, SDL_WINDOW_VULKAN);
+	if (_sdl_window == nullptr)
+		throw (std::runtime_error("Failed to create SDL Window (Vulkan)"));
 }
 
-void Application::initVulkan(void)
+void Application::_initVulkan(void)
 {
-
+	_createVKInstance();
 }
 
-void Application::mainLoop(void)
+void Application::_createVKInstance(void)
 {
+	constexpr VkApplicationInfo appInfo = {.pApplicationName = "ShaderTool",
+			.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+			.pEngineName = "No Engine",
+			.engineVersion = VK_MAKE_VERSION(1, 0, 0),
+			.apiVersion = VK_MAKE_API_VERSION(0, 1, 4, 0)};
+	
+	auto available = _vkContext.enumerateInstanceExtensionProperties();
+	std::cout << "Available extensions:" << std::endl;
+	for (const auto &extension : available)
+		std::cout << "- " << extension.extensionName << std::endl;
 
+	std::vector<char const *> requiredLayers;
+	if (enableValidationLayers)
+		requiredLayers.assign(validationLayers.begin(), validationLayers.end());
+	auto layerProperties = _vkContext.enumerateInstanceLayerProperties();
+	if (std::ranges::any_of(requiredLayers,
+				[&layerProperties](auto const &requiredLayer) {
+				return std::ranges::none_of(layerProperties,
+						[requiredLayer](auto const &layerProperty)
+						{ return strcmp(layerProperty.layerName, requiredLayer) == 0;});
+				}))
+		throw (std::runtime_error("One or more required layers are not supported"));
+
+	Uint32 extension_count;
+	const char * const *instance_extensions = SDL_Vulkan_GetInstanceExtensions(
+			&extension_count);
+	if (instance_extensions == nullptr)
+		throw (std::runtime_error("Failed to get Vulkan instance extensions"));
+	std::vector<const char*> extensions;
+	extensions.reserve(extension_count + 1);
+	for (Uint32 i = 0; i < extension_count; ++i)
+		extensions.push_back(instance_extensions[i]);
+	extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+
+	VkInstanceCreateInfo create_info = {
+		.pApplicationInfo = &appInfo,
+		.enabledLayerCount = static_cast<uint32_t>(requiredLayers.size()),
+		.ppEnabledLayerNames = requiredLayers.data(),
+		.enabledExtensionCount = extension_count + 1,
+		.ppEnabledExtensionNames = extensions.data()};
+	_vkInstance = vk::raii::Instance(_vkContext, create_info);
 }
 
-void Application::cleanup(void)
+void Application::_mainLoop(void)
 {
+	SDL_Event event;
 
+	while (_running)
+	{
+		while (SDL_PollEvent(&event))
+		{
+			if ((event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE)
+					|| event.type == SDL_EVENT_QUIT)
+				return ;
+		}
+	}
+}
+
+void Application::_cleanup(void)
+{
+	SDL_DestroyWindow(_sdl_window);
+	SDL_Quit();
 }

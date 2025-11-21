@@ -1,13 +1,12 @@
 #include "Application.hpp"
-#include <iostream>
 #include <cstdlib>
 
 int main(void)
 {
-	Application app;
 
 	try
 	{
+		Application app;
 		app.run();
 	}
 	catch (const std::exception &e)
