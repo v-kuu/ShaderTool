@@ -25,7 +25,10 @@ void Application::_initVulkan(void)
 
 void Application::_createVKInstance(void)
 {
-	constexpr VkApplicationInfo appInfo = {.pApplicationName = "ShaderTool",
+	constexpr VkApplicationInfo appInfo = {
+			.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+			.pNext = nullptr,
+			.pApplicationName = "ShaderTool",
 			.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
 			.pEngineName = "No Engine",
 			.engineVersion = VK_MAKE_VERSION(1, 0, 0),
@@ -60,6 +63,9 @@ void Application::_createVKInstance(void)
 	extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 
 	VkInstanceCreateInfo create_info = {
+		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
 		.pApplicationInfo = &appInfo,
 		.enabledLayerCount = static_cast<uint32_t>(requiredLayers.size()),
 		.ppEnabledLayerNames = requiredLayers.data(),
@@ -72,6 +78,7 @@ void Application::_mainLoop(void)
 {
 	SDL_Event event;
 
+	std::cout << "Main loop" << std::endl;
 	while (_running)
 	{
 		while (SDL_PollEvent(&event))

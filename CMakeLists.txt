@@ -25,6 +25,7 @@ find_package(Vulkan REQUIRED)
 
 add_executable(ShaderTool
 	src/main.cpp
+	src/Application.cpp
 )
 
 target_link_libraries(ShaderTool
