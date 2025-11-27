@@ -1,5 +1,12 @@
 #include "Application.hpp"
 
+std::vector<const char*> g_deviceExtensions = {
+	vk::KHRSwapchainExtensionName,
+	vk::KHRSpirv14ExtensionName,
+	vk::KHRSynchronization2ExtensionName,
+	vk::KHRCreateRenderpass2ExtensionName
+};
+
 void Application::run(void)
 {
 	_initWindow();
@@ -34,6 +41,7 @@ void Application::_initVulkan(void)
 {
 	_createVKInstance();
 	_setupDebugMessenger();
+	_pickPhysicalDevice();
 }
 
 void Application::_setupDebugMessenger(void)
@@ -57,6 +65,60 @@ void Application::_setupDebugMessenger(void)
 	);
 	_debugMessenger = _vkInstance.createDebugUtilsMessengerEXT(
 			debugUtilsMessengerCreateInfoEXT);
+}
+
+void Application::_pickPhysicalDevice(void)
+{
+	auto devices = _vkInstance.enumeratePhysicalDevices();
+	if (devices.empty())
+	{
+		throw (std::runtime_error("Failed to find GPUs with Vulkan support"));
+	}
+
+	std::multimap<int, vk::raii::PhysicalDevice> candidates;
+
+	for (const auto &device : devices)
+	{
+		auto deviceProperties = device.getProperties();
+		auto deviceFeatures = device.getFeatures();
+		auto queueFamilies = device.getQueueFamilyProperties();
+
+		bool isSuitable = deviceProperties.apiVersion >= VK_API_VERSION_1_3;
+		const auto qfpIter = std::ranges::find_if(queueFamilies,
+		[]( vk::QueueFamilyProperties const & qfp)
+		{
+			return ((qfp.queueFlags & vk::QueueFlagBits::eGraphics)
+					!= static_cast<vk::QueueFlags>(0));
+		});
+		isSuitable = isSuitable && (qfpIter != queueFamilies.end());
+
+		auto extensions = device.enumerateDeviceExtensionProperties();
+		bool found = true;
+		for (auto const &extension : g_deviceExtensions)
+		{
+			auto extensionIter = std::ranges::find_if(extensions, [extension](auto const &ext)
+					{return strcmp(ext.extensionName, extension) == 0;});
+			found = found && extensionIter != extensions.end();
+		}
+		isSuitable = isSuitable && found;
+
+		Uint32 score = 0;
+		if (deviceProperties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
+			score += 1000;
+		score += deviceProperties.limits.maxImageDimension2D;
+		if (!deviceFeatures.geometryShader || !isSuitable)
+			continue ;
+		candidates.insert(std::make_pair(score, device));
+	}
+
+	if (candidates.rbegin()->first > 0)
+	{
+		_physicalDevice = candidates.rbegin()->second;
+		auto properties = _physicalDevice.getProperties();
+		std::cout << "Chose GPU: " << properties.deviceName << std::endl;
+	}
+	else
+		throw (std::runtime_error("Failed to find a suitable GPU"));
 }
 
 void Application::_createVKInstance(void)

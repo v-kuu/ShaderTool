@@ -7,6 +7,7 @@
 #include <vulkan/vulkan_raii.hpp>
 #include <vector>
 #include <iostream>
+#include <map>
 
 const std::vector<char const*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
@@ -30,6 +31,7 @@ class Application
 		void _initWindow(void);
 		void _initVulkan(void);
 		void _setupDebugMessenger(void);
+		void _pickPhysicalDevice(void);
 		void _createVKInstance(void);
 		void _mainLoop(void);
 		void _cleanup(void);
@@ -38,5 +40,6 @@ class Application
 		vk::raii::Context _vkContext;
 		vk::raii::Instance _vkInstance = nullptr;
 		vk::raii::DebugUtilsMessengerEXT _debugMessenger = nullptr;
+		vk::raii::PhysicalDevice _physicalDevice = nullptr;
 		bool _running = true;
 };
