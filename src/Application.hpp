@@ -21,9 +21,15 @@ class Application
 {
 	public:
 		void run(void);
+		static VKAPI_ATTR vk::Bool32 VKAPI_CALL debugCallback(
+				vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
+				vk::DebugUtilsMessageTypeFlagsEXT type,
+				const vk::DebugUtilsMessengerCallbackDataEXT *pCallbackData,
+				void *);
 	private:
 		void _initWindow(void);
 		void _initVulkan(void);
+		void _setupDebugMessenger(void);
 		void _createVKInstance(void);
 		void _mainLoop(void);
 		void _cleanup(void);
@@ -31,5 +37,6 @@ class Application
 		SDL_Window *_sdl_window = nullptr;
 		vk::raii::Context _vkContext;
 		vk::raii::Instance _vkInstance = nullptr;
+		vk::raii::DebugUtilsMessengerEXT _debugMessenger = nullptr;
 		bool _running = true;
 };

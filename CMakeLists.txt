@@ -35,7 +35,7 @@ target_link_libraries(ShaderTool
 )
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-	target_compile_options(ShaderTool PRIVATE -Wall -Wextra -Werror)
+	target_compile_options(ShaderTool PRIVATE -Wall -Wextra -Werror -g)
 elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	target_compile_options(ShaderTool PRIVATE /W4)
 endif()

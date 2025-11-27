@@ -8,6 +8,18 @@ void Application::run(void)
 	_cleanup();
 }
 
+VKAPI_ATTR vk::Bool32 VKAPI_CALL Application::debugCallback(
+	vk::DebugUtilsMessageSeverityFlagBitsEXT severity,
+	vk::DebugUtilsMessageTypeFlagsEXT type,
+	const vk::DebugUtilsMessengerCallbackDataEXT *pCallbackData,
+	void *)
+{
+	if (severity >= vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning)
+		std::cerr << "validation layer: type " << to_string(type) << " msg: "
+			<< pCallbackData->pMessage << std::endl;
+	return vk::False;
+}
+
 void Application::_initWindow(void)
 {
 	if (!SDL_Init(SDL_INIT_VIDEO))
@@ -21,6 +33,30 @@ void Application::_initWindow(void)
 void Application::_initVulkan(void)
 {
 	_createVKInstance();
+	_setupDebugMessenger();
+}
+
+void Application::_setupDebugMessenger(void)
+{
+	if (!enableValidationLayers)
+		return ;
+
+	vk::DebugUtilsMessageSeverityFlagsEXT severityFlags(
+			vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose
+			| vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning
+			| vk::DebugUtilsMessageSeverityFlagBitsEXT::eError);
+	vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags(
+			vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
+			| vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
+			| vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
+	vk::DebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfoEXT(
+			{},
+			severityFlags,
+			messageTypeFlags,
+			&debugCallback
+	);
+	_debugMessenger = _vkInstance.createDebugUtilsMessengerEXT(
+			debugUtilsMessengerCreateInfoEXT);
 }
 
 void Application::_createVKInstance(void)
@@ -60,7 +96,7 @@ void Application::_createVKInstance(void)
 	extensions.reserve(extension_count + 1);
 	for (Uint32 i = 0; i < extension_count; ++i)
 		extensions.push_back(instance_extensions[i]);
-	extensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+	extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
 	VkInstanceCreateInfo create_info = {
 		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
