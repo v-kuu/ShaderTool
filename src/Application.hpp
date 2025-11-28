@@ -31,6 +31,7 @@ class Application
 		void _initWindow(void);
 		void _initVulkan(void);
 		void _setupDebugMessenger(void);
+		void _createSurface(void);
 		void _pickPhysicalDevice(void);
 		void _createLogicalDevice(void);
 		void _createVKInstance(void);
@@ -41,6 +42,7 @@ class Application
 		vk::raii::Context _vkContext;
 		vk::raii::Instance _vkInstance = nullptr;
 		vk::raii::DebugUtilsMessengerEXT _debugMessenger = nullptr;
+		vk::raii::SurfaceKHR _surface = nullptr;
 		vk::raii::PhysicalDevice _physicalDevice = nullptr;
 		vk::raii::Device _device = nullptr;
 		vk::raii::Queue _graphicsQueue = nullptr;

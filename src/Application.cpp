@@ -41,7 +41,9 @@ void Application::_initVulkan(void)
 {
 	_createVKInstance();
 	_setupDebugMessenger();
+	_createSurface();
 	_pickPhysicalDevice();
+	_createLogicalDevice();
 }
 
 void Application::_setupDebugMessenger(void)
@@ -65,6 +67,11 @@ void Application::_setupDebugMessenger(void)
 	);
 	_debugMessenger = _vkInstance.createDebugUtilsMessengerEXT(
 			debugUtilsMessengerCreateInfoEXT);
+}
+
+void Application::_createSurface(void)
+{
+	if (!SDL_Vulkan_CreateSurface(_sdl_window, *_vkInstance, nullptr, &_surface))
 }
 
 void Application::_pickPhysicalDevice(void)
@@ -235,6 +242,7 @@ void Application::_mainLoop(void)
 
 void Application::_cleanup(void)
 {
+	SDL_Vulkan_DestroySurface(_vkInstance, _surface, nullptr);
 	SDL_DestroyWindow(_sdl_window);
 	SDL_Quit();
 }
