@@ -115,10 +115,55 @@ void Application::_pickPhysicalDevice(void)
 	{
 		_physicalDevice = candidates.rbegin()->second;
 		auto properties = _physicalDevice.getProperties();
-		std::cout << "Chose GPU: " << properties.deviceName << std::endl;
+		std::cout << "Chosen GPU: " << properties.deviceName << std::endl;
 	}
 	else
 		throw (std::runtime_error("Failed to find a suitable GPU"));
+}
+
+void Application::_createLogicalDevice(void)
+{
+	std::vector<vk::QueueFamilyProperties> queueFamilyProperties =
+		_physicalDevice.getQueueFamilyProperties();
+
+	auto graphicsQueueFamilyProperty = std::ranges::find_if(
+			queueFamilyProperties,
+			[](auto const &qfp) {
+			return (qfp.queueFlags & vk::QueueFlagBits::eGraphics)
+				!= static_cast<vk::QueueFlags>(0); 
+			}
+	);
+	auto graphicsIndex = static_cast<uint32_t>(
+			std::distance(queueFamilyProperties.begin(), graphicsQueueFamilyProperty));
+
+	float queuePriority = 0.5f;
+	vk::DeviceQueueCreateInfo deviceQueueCreateInfo(
+		vk::DeviceQueueCreateFlags{},
+		graphicsIndex,
+		1,
+		&queuePriority
+	);
+
+	vk::PhysicalDeviceFeatures2 deviceFeatures2;
+	vk::PhysicalDeviceVulkan13Features vk13;
+	vk13.dynamicRendering = true;
+	vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT ext;
+	ext.extendedDynamicState = true;
+	vk::StructureChain<vk::PhysicalDeviceFeatures2,
+		vk::PhysicalDeviceVulkan13Features,
+		vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> featureChain(
+				deviceFeatures2, vk13, ext
+	);
+
+	vk::DeviceCreateInfo deviceCreateInfo;
+	deviceCreateInfo.pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>();
+	deviceCreateInfo.queueCreateInfoCount = 1;
+	deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
+	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(g_deviceExtensions.size());
+	deviceCreateInfo.ppEnabledExtensionNames = g_deviceExtensions.data();
+
+	_device = vk::raii::Device(_physicalDevice, deviceCreateInfo);
+	_graphicsQueue = vk::raii::Queue(_device, graphicsIndex, 0);
 }
 
 void Application::_createVKInstance(void)
@@ -183,7 +228,7 @@ void Application::_mainLoop(void)
 		{
 			if ((event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE)
 					|| event.type == SDL_EVENT_QUIT)
-				return ;
+				_running = false;
 		}
 	}
 }

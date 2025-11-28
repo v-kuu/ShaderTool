@@ -32,6 +32,7 @@ class Application
 		void _initVulkan(void);
 		void _setupDebugMessenger(void);
 		void _pickPhysicalDevice(void);
+		void _createLogicalDevice(void);
 		void _createVKInstance(void);
 		void _mainLoop(void);
 		void _cleanup(void);
@@ -41,5 +42,7 @@ class Application
 		vk::raii::Instance _vkInstance = nullptr;
 		vk::raii::DebugUtilsMessengerEXT _debugMessenger = nullptr;
 		vk::raii::PhysicalDevice _physicalDevice = nullptr;
+		vk::raii::Device _device = nullptr;
+		vk::raii::Queue _graphicsQueue = nullptr;
 		bool _running = true;
 };
