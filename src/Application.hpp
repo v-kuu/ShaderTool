@@ -46,5 +46,6 @@ class Application
 		vk::raii::PhysicalDevice _physicalDevice = nullptr;
 		vk::raii::Device _device = nullptr;
 		vk::raii::Queue _graphicsQueue = nullptr;
+		vk::raii::Queue _presentQueue = nullptr;
 		bool _running = true;
 };

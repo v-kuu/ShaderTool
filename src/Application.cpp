@@ -71,7 +71,10 @@ void Application::_setupDebugMessenger(void)
 
 void Application::_createSurface(void)
 {
-	if (!SDL_Vulkan_CreateSurface(_sdl_window, *_vkInstance, nullptr, &_surface))
+	VkSurfaceKHR raw_surface;
+	if (!SDL_Vulkan_CreateSurface(_sdl_window, *_vkInstance, nullptr, &raw_surface))
+		throw (std::runtime_error("Failed to create window surface"));
+	_surface = vk::raii::SurfaceKHR(_vkInstance, raw_surface);
 }
 
 void Application::_pickPhysicalDevice(void)
@@ -135,13 +138,41 @@ void Application::_createLogicalDevice(void)
 
 	auto graphicsQueueFamilyProperty = std::ranges::find_if(
 			queueFamilyProperties,
-			[](auto const &qfp) {
-			return (qfp.queueFlags & vk::QueueFlagBits::eGraphics)
-				!= static_cast<vk::QueueFlags>(0); 
+			[](auto const &qfp)
+			{
+				return (qfp.queueFlags & vk::QueueFlagBits::eGraphics)
+					!= static_cast<vk::QueueFlags>(0); 
 			}
 	);
 	auto graphicsIndex = static_cast<uint32_t>(
 			std::distance(queueFamilyProperties.begin(), graphicsQueueFamilyProperty));
+
+	auto presentIndex = _physicalDevice.getSurfaceSupportKHR(graphicsIndex, *_surface)
+		? graphicsIndex : static_cast<uint32_t>(queueFamilyProperties.size());
+	if (presentIndex == queueFamilyProperties.size())
+	{
+		for (size_t i = 0; i < queueFamilyProperties.size(); ++i)
+		{
+			if ((queueFamilyProperties[i].queueFlags & vk::QueueFlagBits::eGraphics)
+					&& _physicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(i), *_surface))
+			{
+				graphicsIndex = static_cast<uint32_t>(i);
+				presentIndex = graphicsIndex;
+				break ;
+			}
+		}
+		if (presentIndex == queueFamilyProperties.size())
+		{
+			for (size_t i = 0; i < queueFamilyProperties.size(); ++i)
+			{
+				presentIndex = static_cast<uint32_t>(i);
+				break ;
+			}
+		}
+	}
+	if ((graphicsIndex == queueFamilyProperties.size())
+				|| (presentIndex == queueFamilyProperties.size()))
+		throw (std::runtime_error("Could not find a queue for graphics or present"));
 
 	float queuePriority = 0.5f;
 	vk::DeviceQueueCreateInfo deviceQueueCreateInfo(
@@ -171,6 +202,7 @@ void Application::_createLogicalDevice(void)
 
 	_device = vk::raii::Device(_physicalDevice, deviceCreateInfo);
 	_graphicsQueue = vk::raii::Queue(_device, graphicsIndex, 0);
+	_presentQueue = vk::raii::Queue(_device, presentIndex, 0);
 }
 
 void Application::_createVKInstance(void)
@@ -242,7 +274,6 @@ void Application::_mainLoop(void)
 
 void Application::_cleanup(void)
 {
-	SDL_Vulkan_DestroySurface(_vkInstance, _surface, nullptr);
 	SDL_DestroyWindow(_sdl_window);
 	SDL_Quit();
 }
