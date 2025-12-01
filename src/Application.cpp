@@ -75,6 +75,7 @@ void Application::_createSurface(void)
 	if (!SDL_Vulkan_CreateSurface(_sdl_window, *_vkInstance, nullptr, &raw_surface))
 		throw (std::runtime_error("Failed to create window surface"));
 	_surface = vk::raii::SurfaceKHR(_vkInstance, raw_surface);
+	std::cout << "Backend: " << SDL_GetCurrentVideoDriver() << std::endl;
 }
 
 void Application::_pickPhysicalDevice(void)
