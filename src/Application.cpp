@@ -44,6 +44,7 @@ void Application::_initVulkan(void)
 	_createSurface();
 	_pickPhysicalDevice();
 	_createLogicalDevice();
+	_createSwapChain();
 }
 
 void Application::_setupDebugMessenger(void)
@@ -191,8 +192,7 @@ void Application::_createLogicalDevice(void)
 	vk::StructureChain<vk::PhysicalDeviceFeatures2,
 		vk::PhysicalDeviceVulkan13Features,
 		vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> featureChain(
-				deviceFeatures2, vk13, ext
-	);
+				deviceFeatures2, vk13, ext);
 
 	vk::DeviceCreateInfo deviceCreateInfo;
 	deviceCreateInfo.pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>();
@@ -204,6 +204,74 @@ void Application::_createLogicalDevice(void)
 	_device = vk::raii::Device(_physicalDevice, deviceCreateInfo);
 	_graphicsQueue = vk::raii::Queue(_device, graphicsIndex, 0);
 	_presentQueue = vk::raii::Queue(_device, presentIndex, 0);
+}
+
+void Application::_createSwapChain(void)
+{
+	auto surfaceCapabilities = _physicalDevice.getSurfaceCapabilitiesKHR(_surface);
+	std::vector<vk::SurfaceFormatKHR> availableFormats = _physicalDevice.getSurfaceFormatsKHR(_surface);
+	std::vector<vk::PresentModeKHR> availablePresentModes = _physicalDevice.getSurfacePresentModesKHR(_surface);
+	_swapChainSurfaceFormat = _chooseSwapSurfaceFormat(availableFormats);
+	_swapChainExtent = _chooseSwapExtent(surfaceCapabilities);
+
+	auto minImageCount = std::max(3u, surfaceCapabilities.minImageCount);
+	minImageCount = (surfaceCapabilities.maxImageCount > 0 && minImageCount > surfaceCapabilities.maxImageCount) ? surfaceCapabilities.maxImageCount : minImageCount;
+	uint32_t imageCount = surfaceCapabilities.minImageCount + 1;
+	if (surfaceCapabilities.maxImageCount > 0 && imageCount > surfaceCapabilities.maxImageCount)
+		imageCount = surfaceCapabilities.maxImageCount;
+
+	vk::SwapchainCreateInfoKHR swapChainCreateInfo = {};
+	swapChainCreateInfo.flags = vk::SwapchainCreateFlagsKHR();
+	swapChainCreateInfo.surface = _surface;
+	swapChainCreateInfo.minImageCount = minImageCount;
+	swapChainCreateInfo.imageFormat = _swapChainSurfaceFormat.format;
+	swapChainCreateInfo.imageColorSpace = _swapChainSurfaceFormat.colorSpace;
+	swapChainCreateInfo.imageExtent = _swapChainExtent;
+	swapChainCreateInfo.imageArrayLayers = 1;
+	swapChainCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
+	swapChainCreateInfo.imageSharingMode = vk::SharingMode::eExclusive;
+	swapChainCreateInfo.preTransform = surfaceCapabilities.currentTransform;
+	swapChainCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
+	swapChainCreateInfo.presentMode = _chooseSwapPresentMode(_physicalDevice.getSurfacePresentModesKHR(_surface));
+	swapChainCreateInfo.clipped = true;
+	swapChainCreateInfo.oldSwapchain = nullptr;
+	
+	_swapChain = vk::raii::SwapchainKHR(_device, swapChainCreateInfo);
+	_swapChainImages = _swapChain.getImages();
+}
+
+vk::SurfaceFormatKHR Application::_chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats)
+{
+	for (const auto &availableFormat : availableFormats)
+	{
+		if (availableFormat.format == vk::Format::eR8G8B8A8Srgb
+				&& availableFormat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear)
+			return (availableFormat);
+	}
+	return (availableFormats[0]);
+}
+
+vk::PresentModeKHR Application::_chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes)
+{
+	for (const auto &availablePresentMode : availablePresentModes)
+	{
+		if (availablePresentMode == vk::PresentModeKHR::eMailbox)
+			return (availablePresentMode);
+	}
+	return (vk::PresentModeKHR::eFifo);
+}
+
+vk::Extent2D Application::_chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities)
+{
+	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
+		return (capabilities.currentExtent);
+	int width, height;
+	SDL_GetWindowSizeInPixels(_sdl_window, &width, &height);
+	return
+	{
+		std::clamp<uint32_t>(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width),
+		std::clamp<uint32_t>(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height)
+	};
 }
 
 void Application::_createVKInstance(void)

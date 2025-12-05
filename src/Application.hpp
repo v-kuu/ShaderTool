@@ -34,6 +34,10 @@ class Application
 		void _createSurface(void);
 		void _pickPhysicalDevice(void);
 		void _createLogicalDevice(void);
+		void _createSwapChain(void);
+		vk::SurfaceFormatKHR _chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats);
+		vk::PresentModeKHR _chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
+		vk::Extent2D _chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities);
 		void _createVKInstance(void);
 		void _mainLoop(void);
 		void _cleanup(void);
@@ -47,5 +51,9 @@ class Application
 		vk::raii::Device _device = nullptr;
 		vk::raii::Queue _graphicsQueue = nullptr;
 		vk::raii::Queue _presentQueue = nullptr;
+		vk::raii::SwapchainKHR _swapChain = nullptr;
+		std::vector<vk::Image> _swapChainImages;
+		vk::SurfaceFormatKHR _swapChainSurfaceFormat;
+		vk::Extent2D _swapChainExtent;
 		bool _running = true;
 };
