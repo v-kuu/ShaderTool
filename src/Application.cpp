@@ -253,6 +253,11 @@ void Application::_createImageViews(void)
 	}
 }
 
+void Application::_createGraphicsPipeline(void)
+{
+	
+}
+
 vk::SurfaceFormatKHR Application::_chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats)
 {
 	for (const auto &availableFormat : availableFormats)

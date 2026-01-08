@@ -36,6 +36,7 @@ class Application
 		void _createLogicalDevice(void);
 		void _createSwapChain(void);
 		void _createImageViews(void);
+		void _createGraphicsPipeline(void);
 		vk::SurfaceFormatKHR _chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats);
 		vk::PresentModeKHR _chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
 		vk::Extent2D _chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities);
