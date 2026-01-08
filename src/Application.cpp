@@ -45,6 +45,7 @@ void Application::_initVulkan(void)
 	_pickPhysicalDevice();
 	_createLogicalDevice();
 	_createSwapChain();
+	_createImageViews();
 }
 
 void Application::_setupDebugMessenger(void)
@@ -238,6 +239,18 @@ void Application::_createSwapChain(void)
 	
 	_swapChain = vk::raii::SwapchainKHR(_device, swapChainCreateInfo);
 	_swapChainImages = _swapChain.getImages();
+}
+
+void Application::_createImageViews(void)
+{
+	_swapChainImageViews.clear();
+
+	vk::ImageViewCreateInfo createInfo({}, {}, vk::ImageViewType::e2D, _swapChainSurfaceFormat.format, {}, {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1});
+	for (auto image : _swapChainImages)
+	{
+		createInfo.image = image;
+		_swapChainImageViews.emplace_back(_device, createInfo);
+	}
 }
 
 vk::SurfaceFormatKHR Application::_chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats)

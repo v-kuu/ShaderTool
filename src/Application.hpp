@@ -35,6 +35,7 @@ class Application
 		void _pickPhysicalDevice(void);
 		void _createLogicalDevice(void);
 		void _createSwapChain(void);
+		void _createImageViews(void);
 		vk::SurfaceFormatKHR _chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats);
 		vk::PresentModeKHR _chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
 		vk::Extent2D _chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities);
@@ -55,5 +56,6 @@ class Application
 		std::vector<vk::Image> _swapChainImages;
 		vk::SurfaceFormatKHR _swapChainSurfaceFormat;
 		vk::Extent2D _swapChainExtent;
+		std::vector<vk::raii::ImageView> _swapChainImageViews;
 		bool _running = true;
 };
