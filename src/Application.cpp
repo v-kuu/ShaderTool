@@ -7,6 +7,20 @@ std::vector<const char*> g_deviceExtensions = {
 	vk::KHRCreateRenderpass2ExtensionName
 };
 
+static std::vector<char> readFile(const std::string &filename)
+{
+	std::ifstream file(filename, std::ios::ate | std::ios::binary);
+	if (!file.is_open())
+		throw std::runtime_error("Failed to open file.");
+
+	std::vector<char> buffer(file.tellg());
+	file.seekg(0, std::ios::beg);
+	file.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+	file.close();
+
+	return buffer;
+}
+
 void Application::run(void)
 {
 	_initWindow();
@@ -255,7 +269,26 @@ void Application::_createImageViews(void)
 
 void Application::_createGraphicsPipeline(void)
 {
-	
+	vk::raii::ShaderModule shaderModule = _createShaderModule(readFile("shaders/glsl.spv"));
+
+	vk::PipelineShaderStageCreateInfo vertShaderStageInfo(
+		{},
+		vk::ShaderStageFlagBits::eVertex,
+		shaderModule,
+		"vertMain",
+		nullptr
+	);
+}
+
+vk::raii::ShaderModule Application::_createShaderModule(const std::vector<char> &code) const
+{
+	vk::ShaderModuleCreateInfo createInfo(
+			{},
+			code.size() * sizeof(uint32_t),
+			reinterpret_cast<const uint32_t*>(code.data())
+	);
+	vk::raii::ShaderModule shaderModule{_device, createInfo};
+	return shaderModule;
 }
 
 vk::SurfaceFormatKHR Application::_chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats)

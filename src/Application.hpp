@@ -8,6 +8,7 @@
 #include <vector>
 #include <iostream>
 #include <map>
+#include <fstream>
 
 const std::vector<char const*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
@@ -37,6 +38,7 @@ class Application
 		void _createSwapChain(void);
 		void _createImageViews(void);
 		void _createGraphicsPipeline(void);
+		[[nodiscard]]vk::raii::ShaderModule _createShaderModule(const std::vector<char> &code) const;
 		vk::SurfaceFormatKHR _chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats);
 		vk::PresentModeKHR _chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
 		vk::Extent2D _chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities);
