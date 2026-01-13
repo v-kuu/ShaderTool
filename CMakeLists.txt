@@ -5,6 +5,8 @@ option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+find_program(GLSLC_EXECUTABLE glslc)
+
 function(add_glsl_shader_target TARGET)
 	cmake_parse_arguments("SHADER" "" "" "SOURCES" ${ARGN})
 
@@ -30,8 +32,8 @@ function(add_glsl_shader_target TARGET)
 	add_custom_target(${TARGET} DEPENDS ${SHADERS_DIR}/glsl.spv)
 endfunction()
 
-add_glsl_shader_target(foo SOURCES ${SHADER_GLSL_SOURCES})
-add_dependencies(bar foo)
+#add_glsl_shader_target(foo SOURCES ${SHADER_GLSL_SOURCES})
+#add_dependencies(bar foo)
 
 include(FetchContent)
 

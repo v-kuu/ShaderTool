@@ -75,12 +75,11 @@ void Application::_setupDebugMessenger(void)
 			vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
 			| vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance
 			| vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
-	vk::DebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfoEXT(
-			{},
-			severityFlags,
-			messageTypeFlags,
-			&debugCallback
-	);
+	vk::DebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfoEXT{
+			.messageSeverity = severityFlags,
+			.messageType = messageTypeFlags,
+			.pfnUserCallback = &debugCallback
+	};
 	_debugMessenger = _vkInstance.createDebugUtilsMessengerEXT(
 			debugUtilsMessengerCreateInfoEXT);
 }
@@ -192,12 +191,11 @@ void Application::_createLogicalDevice(void)
 		throw (std::runtime_error("Could not find a queue for graphics or present"));
 
 	float queuePriority = 0.5f;
-	vk::DeviceQueueCreateInfo deviceQueueCreateInfo(
-		vk::DeviceQueueCreateFlags{},
-		graphicsIndex,
-		1,
-		&queuePriority
-	);
+	vk::DeviceQueueCreateInfo deviceQueueCreateInfo{
+		.queueFamilyIndex = graphicsIndex,
+		.queueCount = 1,
+		.pQueuePriorities = &queuePriority
+	};
 
 	vk::PhysicalDeviceFeatures2 deviceFeatures2;
 	vk::PhysicalDeviceVulkan13Features vk13;
@@ -209,12 +207,13 @@ void Application::_createLogicalDevice(void)
 		vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> featureChain(
 				deviceFeatures2, vk13, ext);
 
-	vk::DeviceCreateInfo deviceCreateInfo;
-	deviceCreateInfo.pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>();
-	deviceCreateInfo.queueCreateInfoCount = 1;
-	deviceCreateInfo.pQueueCreateInfos = &deviceQueueCreateInfo;
-	deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(g_deviceExtensions.size());
-	deviceCreateInfo.ppEnabledExtensionNames = g_deviceExtensions.data();
+	vk::DeviceCreateInfo deviceCreateInfo{
+		.pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>(),
+		.queueCreateInfoCount = 1,
+		.pQueueCreateInfos = &deviceQueueCreateInfo,
+		.enabledExtensionCount = static_cast<uint32_t>(g_deviceExtensions.size()),
+		.ppEnabledExtensionNames = g_deviceExtensions.data()
+	};
 
 	_device = vk::raii::Device(_physicalDevice, deviceCreateInfo);
 	_graphicsQueue = vk::raii::Queue(_device, graphicsIndex, 0);
@@ -235,21 +234,22 @@ void Application::_createSwapChain(void)
 	if (surfaceCapabilities.maxImageCount > 0 && imageCount > surfaceCapabilities.maxImageCount)
 		imageCount = surfaceCapabilities.maxImageCount;
 
-	vk::SwapchainCreateInfoKHR swapChainCreateInfo = {};
-	swapChainCreateInfo.flags = vk::SwapchainCreateFlagsKHR();
-	swapChainCreateInfo.surface = _surface;
-	swapChainCreateInfo.minImageCount = minImageCount;
-	swapChainCreateInfo.imageFormat = _swapChainSurfaceFormat.format;
-	swapChainCreateInfo.imageColorSpace = _swapChainSurfaceFormat.colorSpace;
-	swapChainCreateInfo.imageExtent = _swapChainExtent;
-	swapChainCreateInfo.imageArrayLayers = 1;
-	swapChainCreateInfo.imageUsage = vk::ImageUsageFlagBits::eColorAttachment;
-	swapChainCreateInfo.imageSharingMode = vk::SharingMode::eExclusive;
-	swapChainCreateInfo.preTransform = surfaceCapabilities.currentTransform;
-	swapChainCreateInfo.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque;
-	swapChainCreateInfo.presentMode = _chooseSwapPresentMode(_physicalDevice.getSurfacePresentModesKHR(_surface));
-	swapChainCreateInfo.clipped = true;
-	swapChainCreateInfo.oldSwapchain = nullptr;
+	vk::SwapchainCreateInfoKHR swapChainCreateInfo{
+		.flags = vk::SwapchainCreateFlagsKHR(),
+		.surface = _surface,
+		.minImageCount = minImageCount,
+		.imageFormat = _swapChainSurfaceFormat.format,
+		.imageColorSpace = _swapChainSurfaceFormat.colorSpace,
+		.imageExtent = _swapChainExtent,
+		.imageArrayLayers = 1,
+		.imageUsage = vk::ImageUsageFlagBits::eColorAttachment,
+		.imageSharingMode = vk::SharingMode::eExclusive,
+		.preTransform = surfaceCapabilities.currentTransform,
+		.compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
+		.presentMode = _chooseSwapPresentMode(_physicalDevice.getSurfacePresentModesKHR(_surface)),
+		.clipped = true,
+		.oldSwapchain = nullptr
+	};
 	
 	_swapChain = vk::raii::SwapchainKHR(_device, swapChainCreateInfo);
 	_swapChainImages = _swapChain.getImages();
@@ -259,7 +259,11 @@ void Application::_createImageViews(void)
 {
 	_swapChainImageViews.clear();
 
-	vk::ImageViewCreateInfo createInfo({}, {}, vk::ImageViewType::e2D, _swapChainSurfaceFormat.format, {}, {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1});
+	vk::ImageViewCreateInfo createInfo{
+		.viewType = vk::ImageViewType::e2D,
+		.format = _swapChainSurfaceFormat.format,
+		.subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
+	};
 	for (auto image : _swapChainImages)
 	{
 		createInfo.image = image;
@@ -271,22 +275,19 @@ void Application::_createGraphicsPipeline(void)
 {
 	vk::raii::ShaderModule shaderModule = _createShaderModule(readFile("shaders/glsl.spv"));
 
-	vk::PipelineShaderStageCreateInfo vertShaderStageInfo(
-		{},
-		vk::ShaderStageFlagBits::eVertex,
-		shaderModule,
-		"vertMain",
-		nullptr
-	);
+	vk::PipelineShaderStageCreateInfo vertShaderStageInfo{
+		.stage = vk::ShaderStageFlagBits::eVertex,
+		.module = shaderModule,
+		.pName = "vertMain",
+	};
 }
 
 vk::raii::ShaderModule Application::_createShaderModule(const std::vector<char> &code) const
 {
-	vk::ShaderModuleCreateInfo createInfo(
-			{},
-			code.size() * sizeof(uint32_t),
-			reinterpret_cast<const uint32_t*>(code.data())
-	);
+	vk::ShaderModuleCreateInfo createInfo{
+			.codeSize = code.size() * sizeof(uint32_t),
+			.pCode = reinterpret_cast<const uint32_t*>(code.data())
+	};
 	vk::raii::ShaderModule shaderModule{_device, createInfo};
 	return shaderModule;
 }
@@ -327,14 +328,13 @@ vk::Extent2D Application::_chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &ca
 
 void Application::_createVKInstance(void)
 {
-	constexpr VkApplicationInfo appInfo = {
-			.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-			.pNext = nullptr,
+	constexpr vk::ApplicationInfo appInfo{
 			.pApplicationName = "ShaderTool",
 			.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
 			.pEngineName = "No Engine",
 			.engineVersion = VK_MAKE_VERSION(1, 0, 0),
-			.apiVersion = VK_MAKE_API_VERSION(0, 1, 4, 0)};
+			.apiVersion = VK_MAKE_API_VERSION(0, 1, 4, 0)
+	};
 	
 	auto available = _vkContext.enumerateInstanceExtensionProperties();
 	std::cout << "Available extensions:" << std::endl;
@@ -364,15 +364,13 @@ void Application::_createVKInstance(void)
 		extensions.push_back(instance_extensions[i]);
 	extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
-	VkInstanceCreateInfo create_info = {
-		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-		.pNext = nullptr,
-		.flags = 0,
+	vk::InstanceCreateInfo create_info{
 		.pApplicationInfo = &appInfo,
 		.enabledLayerCount = static_cast<uint32_t>(requiredLayers.size()),
 		.ppEnabledLayerNames = requiredLayers.data(),
 		.enabledExtensionCount = extension_count + 1,
-		.ppEnabledExtensionNames = extensions.data()};
+		.ppEnabledExtensionNames = extensions.data()
+	};
 	_vkInstance = vk::raii::Instance(_vkContext, create_info);
 }
 

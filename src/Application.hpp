@@ -2,9 +2,12 @@
 #ifndef VK_EXT_DEBUG_REPORT_EXTENSION_NAME
 # define VK_EXT_DEBUG_REPORT_EXTENSION_NAME "VK_EXT_debug_report"
 #endif
+
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
+#define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
 #include <vulkan/vulkan_raii.hpp>
+
 #include <vector>
 #include <iostream>
 #include <map>
