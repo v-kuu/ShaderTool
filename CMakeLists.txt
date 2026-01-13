@@ -5,9 +5,7 @@ option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_program(GLSLC_EXECUTABLE glslc)
-
-function(add_glsl_shader_target TARGET)
+function(add_slang_shader_target TARGET)
 	cmake_parse_arguments("SHADER" "" "" "SOURCES" ${ARGN})
 
 	set(SHADERS_DIR ${CMAKE_CURRENT_LIST_DIR}/shaders)
@@ -18,21 +16,18 @@ function(add_glsl_shader_target TARGET)
 	)
 
 	add_custom_command(
-		OUTPUT ${SHADERS_DIR}/glsl.spv
-		COMMAND ${GLSLC_EXECUTABLE}
-				${SHADER_SOURCES}
-				--target-env=vulkan1.2
-				-o glsl.spv
+		OUTPUT ${SHADERS_DIR}/slang.spv
+		COMMAND ${SLANG_EXECUTABLE} ${SHADER_SOURCES} -target spirv -profile spirv_1_4 -emit-spirv-directly -fvk-use-entrypoint-name ${ENTRY_POINTS} -o slang.spv
 		WORKING_DIRECTORY ${SHADERS_DIR}
 		DEPENDS ${SHADERS_DIR} ${SHADER_SOURCES}
-		COMMENT "Compiling GLSL Shaders"
+		COMMENT "Compiling Slang Shaders"
 		VERBATIM
 	)
 
-	add_custom_target(${TARGET} DEPENDS ${SHADERS_DIR}/glsl.spv)
+	add_custom_target(${TARGET} DEPENDS ${SHADERS_DIR}/slang.spv)
 endfunction()
 
-#add_glsl_shader_target(foo SOURCES ${SHADER_GLSL_SOURCES})
+#add_slang_shader_target(foo SOURCES ${SHADER_SLANG_SOURCES})
 #add_dependencies(bar foo)
 
 include(FetchContent)
