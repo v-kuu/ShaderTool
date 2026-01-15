@@ -42,6 +42,8 @@ class Application
 		void _createImageViews(void);
 		void _createGraphicsPipeline(void);
 		[[nodiscard]]vk::raii::ShaderModule _createShaderModule(const std::vector<char> &code) const;
+		void _createCommandPool(void);
+		void _createCommandBuffer(void);
 		vk::SurfaceFormatKHR _chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats);
 		vk::PresentModeKHR _chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
 		vk::Extent2D _chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities);
@@ -61,6 +63,8 @@ class Application
 		vk::raii::SwapchainKHR _swapChain = nullptr;
 		vk::raii::PipelineLayout _pipelineLayout = nullptr;
 		vk::raii::Pipeline _graphicsPipeline = nullptr;
+		vk::raii::CommandPool _commandPool = nullptr;
+		vk::raii::CommandBuffer _commandBuffer = nullptr;
 		std::vector<vk::Image> _swapChainImages;
 		vk::SurfaceFormatKHR _swapChainSurfaceFormat;
 		vk::Extent2D _swapChainExtent;

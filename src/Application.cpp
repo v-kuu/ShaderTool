@@ -60,6 +60,9 @@ void Application::_initVulkan(void)
 	_createLogicalDevice();
 	_createSwapChain();
 	_createImageViews();
+	_createGraphicsPipeline();
+	_createCommandPool();
+	_createCommandBuffer();
 }
 
 void Application::_setupDebugMessenger(void)
@@ -287,7 +290,7 @@ void Application::_createGraphicsPipeline(void)
 	};
 	vk::PipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-	vk::PipelineShaderStageCreateInfo vertexInputInfo;
+	vk::PipelineVertexInputStateCreateInfo vertexInputInfo;
 	vk::PipelineInputAssemblyStateCreateInfo inputAssembly{.topology = vk::PrimitiveTopology::eTriangleList};
 	vk::PipelineViewportStateCreateInfo viewportState{.viewportCount = 1, .scissorCount = 1};
 
@@ -326,18 +329,24 @@ void Application::_createGraphicsPipeline(void)
 	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
 	_pipelineLayout = vk::raii::PipelineLayout(_device, pipelineLayoutInfo);
 
-	vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> pipelineCreateInfoChain = {
-		{.stageCount = 2,
-		.pVertexInputState = &vertexInputInfo,
-		.pInputAssemblyState = &inputAssembly,
-		.pViewportState = &viewportState,
-		.pRasterizationState = &rasterizer,
-		.pMultisampleState = &multisampling,
-		.pColorBlendState = &colorBlending,
-		.pDynamicState = &dynamicState,
-		.layout = _pipelineLayout,
-		.renderPass = nullptr},
-		{.colorAttachmentCount = 1, .colorAttachmentFormats = &_swapChainSurfaceFormat.format}
+	vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> pipelineCreateInfoChain =
+	{
+		{
+			.stageCount = 2,
+			.pVertexInputState = &vertexInputInfo,
+			.pInputAssemblyState = &inputAssembly,
+			.pViewportState = &viewportState,
+			.pRasterizationState = &rasterizer,
+			.pMultisampleState = &multisampling,
+			.pColorBlendState = &colorBlending,
+			.pDynamicState = &dynamicState,
+			.layout = _pipelineLayout,
+			.renderPass = nullptr
+		},
+		{
+			.colorAttachmentCount = 1,
+			.pColorAttachmentFormats = &_swapChainSurfaceFormat.format
+		}
 	};
 
 	_graphicsPipeline = vk::raii::Pipeline(_device, nullptr, pipelineCreateInfoChain.get<vk::GraphicsPipelineCreateInfo>());
@@ -351,6 +360,25 @@ vk::raii::ShaderModule Application::_createShaderModule(const std::vector<char> 
 	};
 	vk::raii::ShaderModule shaderModule{_device, createInfo};
 	return shaderModule;
+}
+
+void Application::_createCommandPool(void)
+{
+	vk::CommandPoolCreateInfo poolInfo{
+		.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
+		.queueFamilyIndex = graphicsIndex
+	};
+	_commandPool = vk::raii::CommandPool(_device, poolInfo);
+}
+
+void Application::_createCommandBuffer(void)
+{
+	vk::CommandBufferAllocateInfo allocInfo{
+		.commandPool = _commandPool,
+		.level = vk::CommandBufferLevel::ePrimary,
+		.commandBufferCount = 1
+	};
+	_commandBuffer = std::move(vk::raii::CommandBuffers(_device, allocInfo).front());
 }
 
 vk::SurfaceFormatKHR Application::_chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats)
