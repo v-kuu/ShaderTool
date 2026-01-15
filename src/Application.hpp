@@ -59,6 +59,8 @@ class Application
 		vk::raii::Queue _graphicsQueue = nullptr;
 		vk::raii::Queue _presentQueue = nullptr;
 		vk::raii::SwapchainKHR _swapChain = nullptr;
+		vk::raii::PipelineLayout _pipelineLayout = nullptr;
+		vk::raii::Pipeline _graphicsPipeline = nullptr;
 		std::vector<vk::Image> _swapChainImages;
 		vk::SurfaceFormatKHR _swapChainSurfaceFormat;
 		vk::Extent2D _swapChainExtent;
