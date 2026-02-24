@@ -44,6 +44,16 @@ class Application
 		[[nodiscard]]vk::raii::ShaderModule _createShaderModule(const std::vector<char> &code) const;
 		void _createCommandPool(void);
 		void _createCommandBuffer(void);
+		void _recordCommandBuffer(uint32_t imageIndex);
+		void _transitionImageLayout(
+				uint32_t imageIndex,
+				vk::ImageLayout oldLayout,
+				vk::ImageLayout newLayout,
+				vk::AccessFlags2 srcAccessMask,
+				vk::AccessFlags2 dstAccessMask,
+				vk::PipelineStageFlags2 srcStageMask,
+				vk::PipelineStageFlags2 dstStageMask
+				);
 		vk::SurfaceFormatKHR _chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats);
 		vk::PresentModeKHR _chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
 		vk::Extent2D _chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities);
@@ -69,5 +79,6 @@ class Application
 		vk::SurfaceFormatKHR _swapChainSurfaceFormat;
 		vk::Extent2D _swapChainExtent;
 		std::vector<vk::raii::ImageView> _swapChainImageViews;
+		uint32_t _queueIndex = 0;
 		bool _running = true;
 };
