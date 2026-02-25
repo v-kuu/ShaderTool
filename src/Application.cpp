@@ -63,6 +63,7 @@ void Application::_initVulkan(void)
 	_createGraphicsPipeline();
 	_createCommandPool();
 	_createCommandBuffer();
+	_createSyncObjects();
 }
 
 void Application::_setupDebugMessenger(void)
@@ -471,6 +472,13 @@ void Application::_transitionImageLayout
 	_commandBuffer.pipelineBarrier2(dependencyInfo);
 }
 
+void Application::_createSyncObjects(void)
+{
+	_presentCompleteSemaphore = vk::raii::Semaphore(_device, {});
+	_renderFinishedSemaphore = vk::raii::Semaphore(_device, {});
+	_drawFence = vk::raii::Fence(_device, {.flags = vk::FenceCreateFlagBits::eSignaled});
+}
+
 vk::SurfaceFormatKHR Application::_chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats)
 {
 	for (const auto &availableFormat : availableFormats)
@@ -566,6 +574,54 @@ void Application::_mainLoop(void)
 					|| event.type == SDL_EVENT_QUIT)
 				_running = false;
 		}
+		_drawFrame();
+	}
+	_device.waitIdle();
+}
+
+void Application::_drawFrame(void)
+{
+	_graphicsQueue.waitIdle();
+	auto [result, imageIndex] = _swapChain.acquireNextImage(UINT64_MAX, *_presentCompleteSemaphore, nullptr);
+	_recordCommandBuffer(imageIndex);
+	_device.resetFences(*_drawFence);
+
+	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+	const vk::SubmitInfo submitInfo
+	{
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &*_presentCompleteSemaphore,
+		.pWaitDstStageMask = &waitDestinationStageMask,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &*_commandBuffer,
+		.signalSemaphoreCount = 1,
+		.pSignalSemaphores = &*_renderFinishedSemaphore
+	};
+	_graphicsQueue.submit(submitInfo, *_drawFence);
+	result = _device.waitForFences(*_drawFence, vk::True, UINT64_MAX);
+	if (result != vk::Result::eSuccess)
+	{
+		throw std::runtime_error("failed to wait for fence");
+	}
+
+	const vk::PresentInfoKHR presentInfoKHR
+	{
+		.waitSemaphoreCount = 1,
+		.pWaitSemaphores = &*_renderFinishedSemaphore,
+		.swapchainCount = 1,
+		.pSwapchains = &*_swapChain,
+		.pImageIndices = &imageIndex
+	};
+	result = _presentQueue.presentKHR(presentInfoKHR);
+	switch (result)
+	{
+		case vk::Result::eSuccess:
+			break;
+		case vk::Result::eSuboptimalKHR:
+			std::cout << "vk::Queue::presentKHR returned vk::Result::eSuboptimalKHR" << std::endl;
+			break;
+		default:
+			break;
 	}
 }
 

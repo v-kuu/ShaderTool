@@ -54,11 +54,13 @@ class Application
 				vk::PipelineStageFlags2 srcStageMask,
 				vk::PipelineStageFlags2 dstStageMask
 				);
+		void _createSyncObjects(void);
 		vk::SurfaceFormatKHR _chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats);
 		vk::PresentModeKHR _chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
 		vk::Extent2D _chooseSwapExtent(const vk::SurfaceCapabilitiesKHR &capabilities);
 		void _createVKInstance(void);
 		void _mainLoop(void);
+		void _drawFrame(void);
 		void _cleanup(void);
 
 		SDL_Window *_sdl_window = nullptr;
@@ -75,6 +77,9 @@ class Application
 		vk::raii::Pipeline _graphicsPipeline = nullptr;
 		vk::raii::CommandPool _commandPool = nullptr;
 		vk::raii::CommandBuffer _commandBuffer = nullptr;
+		vk::raii::Semaphore _presentCompleteSemaphore = nullptr;
+		vk::raii::Semaphore _renderFinishedSemaphore = nullptr;
+		vk::raii::Fence _drawFence = nullptr;
 		std::vector<vk::Image> _swapChainImages;
 		vk::SurfaceFormatKHR _swapChainSurfaceFormat;
 		vk::Extent2D _swapChainExtent;
