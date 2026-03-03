@@ -70,8 +70,7 @@ class Application
 		vk::raii::SurfaceKHR _surface = nullptr;
 		vk::raii::PhysicalDevice _physicalDevice = nullptr;
 		vk::raii::Device _device = nullptr;
-		vk::raii::Queue _graphicsQueue = nullptr;
-		vk::raii::Queue _presentQueue = nullptr;
+		vk::raii::Queue _queue = nullptr;
 		vk::raii::SwapchainKHR _swapChain = nullptr;
 		vk::raii::PipelineLayout _pipelineLayout = nullptr;
 		vk::raii::Pipeline _graphicsPipeline = nullptr;

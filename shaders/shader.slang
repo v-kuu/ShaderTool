@@ -1,4 +1,4 @@
-static float2 positions[3] = float[]
+static float2 positions[3] = float2[]
 (
 	float2(0.0, -0.5),
 	float2(0.5, 0.5),
@@ -14,9 +14,9 @@ static float3 colors[3] = float3[]
 
 struct VertexOutput
 {
-	float3 color,
+	float3 color;
 	float4 sv_position : SV_Position;
-}
+};
 
 [shader("vertex")]
 VertexOutput vertMain(uint vid : SV_VertexID)

@@ -156,61 +156,36 @@ void Application::_createLogicalDevice(void)
 	std::vector<vk::QueueFamilyProperties> queueFamilyProperties =
 		_physicalDevice.getQueueFamilyProperties();
 
-	auto graphicsQueueFamilyProperty = std::ranges::find_if(
-			queueFamilyProperties,
-			[](auto const &qfp)
-			{
-				return (qfp.queueFlags & vk::QueueFlagBits::eGraphics)
-					!= static_cast<vk::QueueFlags>(0); 
-			}
-	);
-	auto graphicsIndex = static_cast<uint32_t>(
-			std::distance(queueFamilyProperties.begin(), graphicsQueueFamilyProperty));
-
-	auto presentIndex = _physicalDevice.getSurfaceSupportKHR(graphicsIndex, *_surface)
-		? graphicsIndex : static_cast<uint32_t>(queueFamilyProperties.size());
-	if (presentIndex == queueFamilyProperties.size())
+	for (uint32_t qfpIndex = 0; qfpIndex < queueFamilyProperties.size(); qfpIndex++)
 	{
-		for (size_t i = 0; i < queueFamilyProperties.size(); ++i)
+		if ((queueFamilyProperties[qfpIndex].queueFlags & vk::QueueFlagBits::eGraphics) &&
+			_physicalDevice.getSurfaceSupportKHR(qfpIndex, *_surface))
 		{
-			if ((queueFamilyProperties[i].queueFlags & vk::QueueFlagBits::eGraphics)
-					&& _physicalDevice.getSurfaceSupportKHR(static_cast<uint32_t>(i), *_surface))
-			{
-				graphicsIndex = static_cast<uint32_t>(i);
-				presentIndex = graphicsIndex;
-				break ;
-			}
-		}
-		if (presentIndex == queueFamilyProperties.size())
-		{
-			for (size_t i = 0; i < queueFamilyProperties.size(); ++i)
-			{
-				presentIndex = static_cast<uint32_t>(i);
-				break ;
-			}
+			_queueIndex = qfpIndex;
+			break;
 		}
 	}
-	if ((graphicsIndex == queueFamilyProperties.size())
-				|| (presentIndex == queueFamilyProperties.size()))
-		throw (std::runtime_error("Could not find a queue for graphics or present"));
+	if (_queueIndex == static_cast<uint32_t>(~0))
+		throw std::runtime_error("Could not find a queue for graphics and present -> terminating");
 
-	_queueIndex = graphicsIndex;
 	float queuePriority = 0.5f;
 	vk::DeviceQueueCreateInfo deviceQueueCreateInfo{
-		.queueFamilyIndex = graphicsIndex,
+		.queueFamilyIndex = _queueIndex,
 		.queueCount = 1,
 		.pQueuePriorities = &queuePriority
 	};
 
-	vk::PhysicalDeviceFeatures2 deviceFeatures2;
-	vk::PhysicalDeviceVulkan13Features vk13;
-	vk13.dynamicRendering = true;
-	vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT ext;
-	ext.extendedDynamicState = true;
-	vk::StructureChain<vk::PhysicalDeviceFeatures2,
+	vk::StructureChain<
+		vk::PhysicalDeviceFeatures2,
+		vk::PhysicalDeviceVulkan11Features,
 		vk::PhysicalDeviceVulkan13Features,
-		vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> featureChain(
-				deviceFeatures2, vk13, ext);
+		vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> featureChain =
+		{
+			{},
+			{.shaderDrawParameters = true},
+			{.synchronization2 = true, .dynamicRendering = true},
+			{.extendedDynamicState = true}
+		};
 
 	vk::DeviceCreateInfo deviceCreateInfo{
 		.pNext = &featureChain.get<vk::PhysicalDeviceFeatures2>(),
@@ -221,8 +196,7 @@ void Application::_createLogicalDevice(void)
 	};
 
 	_device = vk::raii::Device(_physicalDevice, deviceCreateInfo);
-	_graphicsQueue = vk::raii::Queue(_device, graphicsIndex, 0);
-	_presentQueue = vk::raii::Queue(_device, presentIndex, 0);
+	_queue = vk::raii::Queue(_device, _queueIndex, 0);
 }
 
 void Application::_createSwapChain(void)
@@ -288,7 +262,7 @@ void Application::_createGraphicsPipeline(void)
 	vk::PipelineShaderStageCreateInfo fragShaderStageInfo{
 		.stage = vk::ShaderStageFlagBits::eFragment,
 		.module = shaderModule,
-		.pName = "fragMAin"
+		.pName = "fragMain"
 	};
 	vk::PipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
@@ -358,7 +332,7 @@ void Application::_createGraphicsPipeline(void)
 vk::raii::ShaderModule Application::_createShaderModule(const std::vector<char> &code) const
 {
 	vk::ShaderModuleCreateInfo createInfo{
-			.codeSize = code.size() * sizeof(uint32_t),
+			.codeSize = code.size() * sizeof(char),
 			.pCode = reinterpret_cast<const uint32_t*>(code.data())
 	};
 	vk::raii::ShaderModule shaderModule{_device, createInfo};
@@ -581,7 +555,7 @@ void Application::_mainLoop(void)
 
 void Application::_drawFrame(void)
 {
-	_graphicsQueue.waitIdle();
+	_queue.waitIdle();
 	auto [result, imageIndex] = _swapChain.acquireNextImage(UINT64_MAX, *_presentCompleteSemaphore, nullptr);
 	_recordCommandBuffer(imageIndex);
 	_device.resetFences(*_drawFence);
@@ -597,7 +571,7 @@ void Application::_drawFrame(void)
 		.signalSemaphoreCount = 1,
 		.pSignalSemaphores = &*_renderFinishedSemaphore
 	};
-	_graphicsQueue.submit(submitInfo, *_drawFence);
+	_queue.submit(submitInfo, *_drawFence);
 	result = _device.waitForFences(*_drawFence, vk::True, UINT64_MAX);
 	if (result != vk::Result::eSuccess)
 	{
@@ -612,7 +586,7 @@ void Application::_drawFrame(void)
 		.pSwapchains = &*_swapChain,
 		.pImageIndices = &imageIndex
 	};
-	result = _presentQueue.presentKHR(presentInfoKHR);
+	result = _queue.presentKHR(presentInfoKHR);
 	switch (result)
 	{
 		case vk::Result::eSuccess:

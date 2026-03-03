@@ -27,9 +27,6 @@ function(add_slang_shader_target TARGET)
 	add_custom_target(${TARGET} DEPENDS ${SHADERS_DIR}/slang.spv)
 endfunction()
 
-#add_slang_shader_target(foo SOURCES ${SHADER_SLANG_SOURCES})
-#add_dependencies(bar foo)
-
 include(FetchContent)
 
 FetchContent_Declare(SDL3
