@@ -448,9 +448,9 @@ void Application::_transitionImageLayout
 
 void Application::_createSyncObjects(void)
 {
-	_presentCompleteSemaphore = vk::raii::Semaphore(_device, {});
-	_renderFinishedSemaphore = vk::raii::Semaphore(_device, {});
-	_drawFence = vk::raii::Fence(_device, {.flags = vk::FenceCreateFlagBits::eSignaled});
+	_presentCompleteSemaphore = vk::raii::Semaphore(_device, vk::SemaphoreCreateInfo{});
+	_renderFinishedSemaphore = vk::raii::Semaphore(_device, vk::SemaphoreCreateInfo{});
+	_drawFence = vk::raii::Fence(_device, vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
 }
 
 vk::SurfaceFormatKHR Application::_chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats)
