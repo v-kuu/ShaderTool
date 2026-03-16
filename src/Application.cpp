@@ -46,7 +46,7 @@ void Application::_initWindow(void)
 	if (!SDL_Init(SDL_INIT_VIDEO))
 		throw (std::runtime_error("Unable to initialize SDL"));
 
-	_sdl_window = SDL_CreateWindow("ShaderTool", 1920, 1080, SDL_WINDOW_VULKAN);
+	_sdl_window = SDL_CreateWindow("ShaderTool", 1920, 1080, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIGH_PIXEL_DENSITY);
 	if (_sdl_window == nullptr)
 		throw (std::runtime_error("Failed to create SDL Window (Vulkan)"));
 }
@@ -232,6 +232,22 @@ void Application::_createSwapChain(void)
 	
 	_swapChain = vk::raii::SwapchainKHR(_device, swapChainCreateInfo);
 	_swapChainImages = _swapChain.getImages();
+}
+
+void Application::_recreateSwapChain(void)
+{
+	_device.waitIdle();
+
+	_cleanupSwapChain();
+
+	_createSwapChain();
+	_createImageViews();
+}
+
+void Application::_cleanupSwapChain(void)
+{
+	_swapChainImageViews.clear();
+	_swapChain = nullptr;
 }
 
 void Application::_createImageViews(void)
@@ -554,6 +570,8 @@ void Application::_mainLoop(void)
 			if ((event.type == SDL_EVENT_KEY_DOWN && event.key.key == SDLK_ESCAPE)
 					|| event.type == SDL_EVENT_QUIT)
 				_running = false;
+			if (event.type == SDL_EVENT_WINDOW_RESIZED)
+				_frameBufferResized = true;
 		}
 		_drawFrame();
 	}
@@ -569,7 +587,16 @@ void Application::_drawFrame(void)
 	}
 	_device.resetFences(*_inFlightFences[_frameIndex]);
 	auto [result, imageIndex] = _swapChain.acquireNextImage(UINT64_MAX, *_presentCompleteSemaphores[_frameIndex], nullptr);
-
+	if (result == vk::Result::eErrorOutOfDateKHR)
+	{
+			_recreateSwapChain();
+			return;
+	}
+	else if (result != vk::Result::eSuccess && result != vk::Result::eSuboptimalKHR)
+	{
+		assert(result == vk::Result::eTimeout && result != vk::Result::eNotReady);
+		throw std::runtime_error("failed to acquire swap chain image");
+	}
 	_commandBuffers[_frameIndex].reset();
 	_recordCommandBuffer(imageIndex);
 
@@ -595,21 +622,22 @@ void Application::_drawFrame(void)
 		.pImageIndices = &imageIndex
 	};
 	result = _queue.presentKHR(presentInfoKHR);
-	switch (result)
+	if (result == vk::Result::eSuboptimalKHR || result == vk::Result::eErrorOutOfDateKHR || _frameBufferResized)
 	{
-		case vk::Result::eSuccess:
-			break;
-		case vk::Result::eSuboptimalKHR:
+		if (result == vk::Result::eSuboptimalKHR)
 			std::cout << "vk::Queue::presentKHR returned vk::Result::eSuboptimalKHR" << std::endl;
-			break;
-		default:
-			break;
+		_frameBufferResized = false;
+		_recreateSwapChain();
 	}
+	else
+		assert(result == vk::Result::eSuccess);
 	_frameIndex = (_frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
 void Application::_cleanup(void)
 {
+	_swapChain.clear();
+	_surface.clear();
 	SDL_DestroyWindow(_sdl_window);
 	SDL_Quit();
 }

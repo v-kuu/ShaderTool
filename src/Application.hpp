@@ -6,6 +6,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 #define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
+#define VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS
 #include <vulkan/vulkan_raii.hpp>
 
 #include <vector>
@@ -39,7 +40,11 @@ class Application
 		void _createSurface(void);
 		void _pickPhysicalDevice(void);
 		void _createLogicalDevice(void);
+
 		void _createSwapChain(void);
+		void _recreateSwapChain(void);
+		void _cleanupSwapChain(void);
+
 		void _createImageViews(void);
 		void _createGraphicsPipeline(void);
 		[[nodiscard]]vk::raii::ShaderModule _createShaderModule(const std::vector<char> &code) const;
@@ -92,5 +97,6 @@ class Application
 		std::vector<vk::raii::ImageView> _swapChainImageViews;
 
 		bool _running = true;
+		bool _frameBufferResized = false;
 		uint32_t _frameIndex = 0;
 };
