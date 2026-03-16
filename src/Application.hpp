@@ -21,6 +21,7 @@ constexpr bool enableValidationLayers = false;
 #else
 constexpr bool enableValidationLayers = true;
 #endif
+constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
 class Application
 {
@@ -43,7 +44,7 @@ class Application
 		void _createGraphicsPipeline(void);
 		[[nodiscard]]vk::raii::ShaderModule _createShaderModule(const std::vector<char> &code) const;
 		void _createCommandPool(void);
-		void _createCommandBuffer(void);
+		void _createCommandBuffers(void);
 		void _recordCommandBuffer(uint32_t imageIndex);
 		void _transitionImageLayout(
 				uint32_t imageIndex,
@@ -68,21 +69,28 @@ class Application
 		vk::raii::Instance _vkInstance = nullptr;
 		vk::raii::DebugUtilsMessengerEXT _debugMessenger = nullptr;
 		vk::raii::SurfaceKHR _surface = nullptr;
+
 		vk::raii::PhysicalDevice _physicalDevice = nullptr;
 		vk::raii::Device _device = nullptr;
 		vk::raii::Queue _queue = nullptr;
-		vk::raii::SwapchainKHR _swapChain = nullptr;
+		uint32_t _queueIndex = 0;
+
 		vk::raii::PipelineLayout _pipelineLayout = nullptr;
 		vk::raii::Pipeline _graphicsPipeline = nullptr;
+
 		vk::raii::CommandPool _commandPool = nullptr;
-		vk::raii::CommandBuffer _commandBuffer = nullptr;
-		vk::raii::Semaphore _presentCompleteSemaphore = nullptr;
-		vk::raii::Semaphore _renderFinishedSemaphore = nullptr;
-		vk::raii::Fence _drawFence = nullptr;
+		std::vector<vk::raii::CommandBuffer> _commandBuffers;
+
+		std::vector<vk::raii::Semaphore> _presentCompleteSemaphores;
+		std::vector<vk::raii::Semaphore> _renderFinishedSemaphores;
+		std::vector<vk::raii::Fence> _inFlightFences;
+
+		vk::raii::SwapchainKHR _swapChain = nullptr;
 		std::vector<vk::Image> _swapChainImages;
 		vk::SurfaceFormatKHR _swapChainSurfaceFormat;
 		vk::Extent2D _swapChainExtent;
 		std::vector<vk::raii::ImageView> _swapChainImageViews;
-		uint32_t _queueIndex = 0;
+
 		bool _running = true;
+		uint32_t _frameIndex = 0;
 };
