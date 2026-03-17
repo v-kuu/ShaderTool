@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.23)
 project(ShaderTool LANGUAGES CXX)
 option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
 
@@ -51,6 +51,14 @@ find_package(Vulkan REQUIRED)
 add_executable(ShaderTool
 	src/main.cpp
 	src/Application.cpp
+)
+
+target_sources(ShaderTool
+	PRIVATE
+	FILE_SET HEADERS
+	BASE_DIRS src
+	FILES
+		src/Application.hpp
 )
 
 target_link_libraries(ShaderTool
