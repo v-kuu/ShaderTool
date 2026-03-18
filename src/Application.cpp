@@ -62,6 +62,7 @@ void Application::_initVulkan(void)
 	_createImageViews();
 	_createGraphicsPipeline();
 	_createCommandPool();
+	_createVertexBuffer();
 	_createCommandBuffers();
 	_createSyncObjects();
 }
@@ -372,6 +373,43 @@ void Application::_createCommandPool(void)
 	_commandPool = vk::raii::CommandPool(_device, poolInfo);
 }
 
+void Application::_createVertexBuffer(void)
+{
+	vk::BufferCreateInfo bufferInfo
+	{
+		.size = sizeof(vertices[0]) * vertices.size(),
+		.usage = vk::BufferUsageFlagBits::eVertexBuffer,
+		.sharingMode = vk::SharingMode::eExclusive
+	};
+	_vertexBuffer = vk::raii::Buffer(_device, bufferInfo);
+
+	vk::MemoryRequirements memRequirements = _vertexBuffer.getMemoryRequirements();
+	vk::MemoryAllocateInfo memoryAllocateInfo
+	{
+		.allocationSize = memRequirements.size,
+		.memoryTypeIndex = _findMemoryType(
+				memRequirements.memoryTypeBits,
+				vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+	};
+	_vertexBufferMemory = vk::raii::DeviceMemory(_device, memoryAllocateInfo);
+	_vertexBuffer.bindMemory(*_vertexBufferMemory, 0);
+
+	void *data = _vertexBufferMemory.mapMemory(0, bufferInfo.size);
+	memcpy(data, vertices.data(), bufferInfo.size);
+	_vertexBufferMemory.unmapMemory();
+}
+
+uint32_t Application::_findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)
+{
+	vk::PhysicalDeviceMemoryProperties memProperties = _physicalDevice.getMemoryProperties();
+	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+	{
+		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+			return i;
+	}
+	throw std::runtime_error("failed to find suitable memory type");
+}
+
 void Application::_createCommandBuffers(void)
 {
 	_commandBuffers.clear();
@@ -417,6 +455,7 @@ void Application::_recordCommandBuffer(uint32_t imageIndex)
 	commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, *_graphicsPipeline);
 	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(_swapChainExtent.width), static_cast<float>(_swapChainExtent.height), 0.0f, 1.0f));
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), _swapChainExtent));
+	commandBuffer.bindVertexBuffers(0, *_vertexBuffer, {0});
 	commandBuffer.draw(3, 1, 0, 0);
 	commandBuffer.endRendering();
 	_transitionImageLayout

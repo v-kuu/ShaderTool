@@ -25,6 +25,11 @@ constexpr bool enableValidationLayers = false;
 constexpr bool enableValidationLayers = true;
 #endif
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+const std::vector<Vertex> vertices = {
+    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+};
 
 class Application
 {
@@ -51,6 +56,8 @@ class Application
 		void _createGraphicsPipeline(void);
 		[[nodiscard]]vk::raii::ShaderModule _createShaderModule(const std::vector<char> &code) const;
 		void _createCommandPool(void);
+		void _createVertexBuffer(void);
+		uint32_t _findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 		void _createCommandBuffers(void);
 		void _recordCommandBuffer(uint32_t imageIndex);
 		void _transitionImageLayout(
@@ -84,6 +91,9 @@ class Application
 
 		vk::raii::PipelineLayout _pipelineLayout = nullptr;
 		vk::raii::Pipeline _graphicsPipeline = nullptr;
+
+		vk::raii::Buffer _vertexBuffer = nullptr;
+		vk::raii::DeviceMemory _vertexBufferMemory = nullptr;
 
 		vk::raii::CommandPool _commandPool = nullptr;
 		std::vector<vk::raii::CommandBuffer> _commandBuffers;
