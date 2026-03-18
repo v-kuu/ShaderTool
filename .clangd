@@ -2,12 +2,12 @@ CompileFlags:
   Add: [
     "-std=c++20",
     "-I../build/_deps/sdl3-src/include",
-    "-I../build/_deps/glm-src/glm"
+    "-I../build/_deps/glm-src"
   ]
 Diagnostics:
   ClangTidy:
     Add: [
       "bugprone-*",
-      "modernize*",
+      "modernize-*",
       "readability-function-*"
     ]
