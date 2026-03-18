@@ -48,6 +48,7 @@ find_package(Vulkan REQUIRED)
 add_executable(ShaderTool
 	src/main.cpp
 	src/Application.cpp
+	src/Vertex.cpp
 )
 
 target_sources(ShaderTool
@@ -56,6 +57,7 @@ target_sources(ShaderTool
 	BASE_DIRS src
 	FILES
 		src/Application.hpp
+		src/Vertex.hpp
 )
 
 target_link_libraries(ShaderTool
