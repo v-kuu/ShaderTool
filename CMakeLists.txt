@@ -27,8 +27,17 @@ function(add_slang_shader_target TARGET)
 	add_custom_target(${TARGET} DEPENDS ${SHADERS_DIR}/slang.spv)
 endfunction()
 
-find_program(SLANG_EXECUTABLE slangc REQUIRED)
-message(STATUS "slangc found: ${SLANG_EXECUTABLE}")
+find_program(SLANG_EXECUTABLE slangc)
+if (SLANG_EXECUTABLE)
+	message(STATUS "slangc found: ${SLANG_EXECUTABLE}")
+	add_slang_shader_target(ShaderTool_Shaders
+		SOURCES
+			${CMAKE_CURRENT_LIST_DIR}/shaders/shader.slang
+	)
+	add_dependencies(ShaderTool ShaderTool_Shaders)
+else()
+	message(STATUS "slangc not found, skipping shader compilation")
+endif()
 
 include(FetchContent)
 
@@ -67,11 +76,6 @@ target_link_libraries(ShaderTool
 	PRIVATE Vulkan::Vulkan
 )
 
-add_slang_shader_target(ShaderTool_Shaders
-    SOURCES
-        ${CMAKE_CURRENT_LIST_DIR}/shaders/shader.slang
-)
-add_dependencies(ShaderTool ShaderTool_Shaders)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
 	target_compile_options(ShaderTool PRIVATE -Wall -Wextra -Werror -g)
