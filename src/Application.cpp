@@ -403,11 +403,69 @@ void Application::_createBuffer(
 void Application::_createVertexBuffer(void)
 {
 	vk::DeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
-	_createBuffer(bufferSize, vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, _vertexBuffer, _vertexBufferMemory);
 
-	void *data = _vertexBufferMemory.mapMemory(0, bufferSize);
-	memcpy(data, vertices.data(), bufferSize);
-	_vertexBufferMemory.unmapMemory();
+	vk::BufferCreateInfo stagingInfo
+	{
+		.size = bufferSize,
+		.usage = vk::BufferUsageFlagBits::eTransferSrc,
+		.sharingMode = vk::SharingMode::eExclusive
+	};
+	vk::raii::Buffer stagingBuffer(_device, stagingInfo);
+	vk::MemoryRequirements memRequirementsStaging = stagingBuffer.getMemoryRequirements();
+	vk::MemoryAllocateInfo memoryAllocateInfoStaging
+	{
+		.allocationSize = memRequirementsStaging.size,
+		.memoryTypeIndex = _findMemoryType(
+				memRequirementsStaging.memoryTypeBits,
+				vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
+				)
+	};
+	vk::raii::DeviceMemory stagingBufferMemory(_device, memoryAllocateInfoStaging);
+
+	stagingBuffer.bindMemory(stagingBufferMemory, 0);
+	void *dataStaging = stagingBufferMemory.mapMemory(0, stagingInfo.size);
+	memcpy(dataStaging, vertices.data(), stagingInfo.size);
+	stagingBufferMemory.unmapMemory();
+
+	vk::BufferCreateInfo bufferInfo
+	{
+		.size = bufferSize,
+		.usage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+		.sharingMode = vk::SharingMode::eExclusive
+	};
+	_vertexBuffer = vk::raii::Buffer(_device, bufferInfo);
+
+	vk::MemoryRequirements memRequirements = _vertexBuffer.getMemoryRequirements();
+	vk::MemoryAllocateInfo memoryAllocateInfo
+	{
+		.allocationSize = memRequirements.size,
+		.memoryTypeIndex = _findMemoryType(
+				memRequirements.memoryTypeBits,
+				vk::MemoryPropertyFlagBits::eDeviceLocal
+				)
+	};
+	_vertexBufferMemory = vk::raii::DeviceMemory(_device, memoryAllocateInfo);
+
+	_vertexBuffer.bindMemory(*_vertexBufferMemory, 0);
+
+	_copyBuffer(stagingBuffer, _vertexBuffer, bufferSize);
+}
+
+void Application::_copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer, vk::DeviceSize size)
+{
+	vk::CommandBufferAllocateInfo allocInfo
+	{
+		.commandPool = _commandPool,
+		.level = vk::CommandBufferLevel::ePrimary,
+		.commandBufferCount = 1
+	};
+	vk::raii::CommandBuffer commandCopyBuffer = std::move(_device.allocateCommandBuffers(allocInfo).front());
+	commandCopyBuffer.begin(vk::CommandBufferBeginInfo{.flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit});
+	commandCopyBuffer.copyBuffer(srcBuffer, dstBuffer, vk::BufferCopy(0, 0, size));
+	commandCopyBuffer.end();
+
+	_queue.submit(vk::SubmitInfo{.commandBufferCount = 1, .pCommandBuffers = &*commandCopyBuffer}, nullptr);
+	_queue.waitIdle();
 }
 
 uint32_t Application::_findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties)

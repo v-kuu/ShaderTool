@@ -64,6 +64,7 @@ class Application
 				vk::raii::DeviceMemory& bufferMemory
 				);
 		void _createVertexBuffer(void);
+		void _copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer, vk::DeviceSize size);
 		uint32_t _findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 		void _createCommandBuffers(void);
 		void _recordCommandBuffer(uint32_t imageIndex);
