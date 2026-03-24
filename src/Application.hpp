@@ -56,6 +56,13 @@ class Application
 		void _createGraphicsPipeline(void);
 		[[nodiscard]]vk::raii::ShaderModule _createShaderModule(const std::vector<char> &code) const;
 		void _createCommandPool(void);
+		void _createBuffer(
+				vk::DeviceSize size,
+				vk::BufferUsageFlags usage,
+				vk::MemoryPropertyFlags properties,
+				vk::raii::Buffer& buffer,
+				vk::raii::DeviceMemory& bufferMemory
+				);
 		void _createVertexBuffer(void);
 		uint32_t _findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 		void _createCommandBuffers(void);

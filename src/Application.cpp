@@ -373,29 +373,40 @@ void Application::_createCommandPool(void)
 	_commandPool = vk::raii::CommandPool(_device, poolInfo);
 }
 
-void Application::_createVertexBuffer(void)
+void Application::_createBuffer(
+		vk::DeviceSize size,
+		vk::BufferUsageFlags usage,
+		vk::MemoryPropertyFlags properties,
+		vk::raii::Buffer& buffer,
+		vk::raii::DeviceMemory& bufferMemory)
 {
 	vk::BufferCreateInfo bufferInfo
 	{
-		.size = sizeof(vertices[0]) * vertices.size(),
-		.usage = vk::BufferUsageFlagBits::eVertexBuffer,
+		.size = size,
+		.usage = usage,
 		.sharingMode = vk::SharingMode::eExclusive
 	};
-	_vertexBuffer = vk::raii::Buffer(_device, bufferInfo);
+	buffer = vk::raii::Buffer(_device, bufferInfo);
 
-	vk::MemoryRequirements memRequirements = _vertexBuffer.getMemoryRequirements();
+	vk::MemoryRequirements memRequirements = buffer.getMemoryRequirements();
 	vk::MemoryAllocateInfo memoryAllocateInfo
 	{
 		.allocationSize = memRequirements.size,
 		.memoryTypeIndex = _findMemoryType(
 				memRequirements.memoryTypeBits,
-				vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent)
+				properties)
 	};
-	_vertexBufferMemory = vk::raii::DeviceMemory(_device, memoryAllocateInfo);
-	_vertexBuffer.bindMemory(*_vertexBufferMemory, 0);
+	bufferMemory = vk::raii::DeviceMemory(_device, memoryAllocateInfo);
+	buffer.bindMemory(*_vertexBufferMemory, 0);
+}
 
-	void *data = _vertexBufferMemory.mapMemory(0, bufferInfo.size);
-	memcpy(data, vertices.data(), bufferInfo.size);
+void Application::_createVertexBuffer(void)
+{
+	vk::DeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+	_createBuffer(bufferSize, vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, _vertexBuffer, _vertexBufferMemory);
+
+	void *data = _vertexBufferMemory.mapMemory(0, bufferSize);
+	memcpy(data, vertices.data(), bufferSize);
 	_vertexBufferMemory.unmapMemory();
 }
 
