@@ -63,6 +63,7 @@ void Application::_initVulkan(void)
 	_createGraphicsPipeline();
 	_createCommandPool();
 	_createVertexBuffer();
+	_createIndexBuffer();
 	_createCommandBuffers();
 	_createSyncObjects();
 }
@@ -397,58 +398,64 @@ void Application::_createBuffer(
 				properties)
 	};
 	bufferMemory = vk::raii::DeviceMemory(_device, memoryAllocateInfo);
-	buffer.bindMemory(*_vertexBufferMemory, 0);
+	buffer.bindMemory(bufferMemory, 0);
 }
 
 void Application::_createVertexBuffer(void)
 {
 	vk::DeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+	vk::raii::Buffer stagingBuffer({});
+	vk::raii::DeviceMemory stagingBufferMemory({});
+	_createBuffer(
+			bufferSize,
+			vk::BufferUsageFlagBits::eTransferSrc,
+			vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+			stagingBuffer,
+			stagingBufferMemory
+			);
 
-	vk::BufferCreateInfo stagingInfo
-	{
-		.size = bufferSize,
-		.usage = vk::BufferUsageFlagBits::eTransferSrc,
-		.sharingMode = vk::SharingMode::eExclusive
-	};
-	vk::raii::Buffer stagingBuffer(_device, stagingInfo);
-	vk::MemoryRequirements memRequirementsStaging = stagingBuffer.getMemoryRequirements();
-	vk::MemoryAllocateInfo memoryAllocateInfoStaging
-	{
-		.allocationSize = memRequirementsStaging.size,
-		.memoryTypeIndex = _findMemoryType(
-				memRequirementsStaging.memoryTypeBits,
-				vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent
-				)
-	};
-	vk::raii::DeviceMemory stagingBufferMemory(_device, memoryAllocateInfoStaging);
-
-	stagingBuffer.bindMemory(stagingBufferMemory, 0);
-	void *dataStaging = stagingBufferMemory.mapMemory(0, stagingInfo.size);
-	memcpy(dataStaging, vertices.data(), stagingInfo.size);
+	void *dataStaging = stagingBufferMemory.mapMemory(0, bufferSize);
+	memcpy(dataStaging, vertices.data(), bufferSize);
 	stagingBufferMemory.unmapMemory();
 
-	vk::BufferCreateInfo bufferInfo
-	{
-		.size = bufferSize,
-		.usage = vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
-		.sharingMode = vk::SharingMode::eExclusive
-	};
-	_vertexBuffer = vk::raii::Buffer(_device, bufferInfo);
-
-	vk::MemoryRequirements memRequirements = _vertexBuffer.getMemoryRequirements();
-	vk::MemoryAllocateInfo memoryAllocateInfo
-	{
-		.allocationSize = memRequirements.size,
-		.memoryTypeIndex = _findMemoryType(
-				memRequirements.memoryTypeBits,
-				vk::MemoryPropertyFlagBits::eDeviceLocal
-				)
-	};
-	_vertexBufferMemory = vk::raii::DeviceMemory(_device, memoryAllocateInfo);
-
-	_vertexBuffer.bindMemory(*_vertexBufferMemory, 0);
+	_createBuffer(
+			bufferSize,
+			vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer,
+			vk::MemoryPropertyFlagBits::eDeviceLocal,
+			_vertexBuffer,
+			_vertexBufferMemory
+			);
 
 	_copyBuffer(stagingBuffer, _vertexBuffer, bufferSize);
+}
+
+void Application::_createIndexBuffer(void)
+{
+	vk::DeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+	vk::raii::Buffer stagingBuffer({});
+	vk::raii::DeviceMemory stagingBufferMemory({});
+	_createBuffer(
+			bufferSize,
+			vk::BufferUsageFlagBits::eTransferSrc,
+			vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+			stagingBuffer,
+			stagingBufferMemory
+			);
+
+	void *data = stagingBufferMemory.mapMemory(0, bufferSize);
+	memcpy(data, indices.data(), (size_t)bufferSize);
+	stagingBufferMemory.unmapMemory();
+
+	_createBuffer(
+			bufferSize,
+			vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer,
+			vk::MemoryPropertyFlagBits::eDeviceLocal,
+			_indexBuffer,
+			_indexBufferMemory
+			);
+
+	_copyBuffer(stagingBuffer, _indexBuffer, bufferSize);
 }
 
 void Application::_copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer, vk::DeviceSize size)
@@ -525,7 +532,8 @@ void Application::_recordCommandBuffer(uint32_t imageIndex)
 	commandBuffer.setViewport(0, vk::Viewport(0.0f, 0.0f, static_cast<float>(_swapChainExtent.width), static_cast<float>(_swapChainExtent.height), 0.0f, 1.0f));
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), _swapChainExtent));
 	commandBuffer.bindVertexBuffers(0, *_vertexBuffer, {0});
-	commandBuffer.draw(3, 1, 0, 0);
+	commandBuffer.bindIndexBuffer(*_indexBuffer, 0, vk::IndexType::eUint16);
+	commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
 	commandBuffer.endRendering();
 	_transitionImageLayout
 	(

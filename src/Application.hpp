@@ -26,9 +26,14 @@ constexpr bool enableValidationLayers = true;
 #endif
 constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 const std::vector<Vertex> vertices = {
-    {{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+    {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+};
+
+const std::vector<uint16_t> indices = {
+	0, 1, 2, 2, 3, 0
 };
 
 class Application
@@ -64,6 +69,7 @@ class Application
 				vk::raii::DeviceMemory& bufferMemory
 				);
 		void _createVertexBuffer(void);
+		void _createIndexBuffer(void);
 		void _copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer, vk::DeviceSize size);
 		uint32_t _findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 		void _createCommandBuffers(void);
@@ -102,6 +108,8 @@ class Application
 
 		vk::raii::Buffer _vertexBuffer = nullptr;
 		vk::raii::DeviceMemory _vertexBufferMemory = nullptr;
+		vk::raii::Buffer _indexBuffer = nullptr;
+		vk::raii::DeviceMemory _indexBufferMemory = nullptr;
 
 		vk::raii::CommandPool _commandPool = nullptr;
 		std::vector<vk::raii::CommandBuffer> _commandBuffers;
