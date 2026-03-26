@@ -5,6 +5,8 @@
 
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #define VULKAN_HPP_NO_STRUCT_CONSTRUCTORS
 #define VULKAN_HPP_HANDLE_ERROR_OUT_OF_DATE_AS_SUCCESS
 #include <vulkan/vulkan_raii.hpp>
@@ -13,8 +15,10 @@
 #include <iostream>
 #include <map>
 #include <fstream>
+#include <chrono>
 
 #include "Vertex.hpp"
+#include "UniformBufferObject.hpp"
 
 const std::vector<char const*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation"
@@ -58,6 +62,7 @@ class Application
 		void _cleanupSwapChain(void);
 
 		void _createImageViews(void);
+		void _createDescriptorSetLayout(void);
 		void _createGraphicsPipeline(void);
 		[[nodiscard]]vk::raii::ShaderModule _createShaderModule(const std::vector<char> &code) const;
 		void _createCommandPool(void);
@@ -70,6 +75,8 @@ class Application
 				);
 		void _createVertexBuffer(void);
 		void _createIndexBuffer(void);
+		void _createUniformBuffers(void);
+		void _updateUniformBuffer(uint32_t currentImage);
 		void _copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer, vk::DeviceSize size);
 		uint32_t _findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 		void _createCommandBuffers(void);
@@ -103,6 +110,7 @@ class Application
 		vk::raii::Queue _queue = nullptr;
 		uint32_t _queueIndex = 0;
 
+		vk::raii::DescriptorSetLayout _descriptorSetLayout = nullptr;
 		vk::raii::PipelineLayout _pipelineLayout = nullptr;
 		vk::raii::Pipeline _graphicsPipeline = nullptr;
 
@@ -110,6 +118,10 @@ class Application
 		vk::raii::DeviceMemory _vertexBufferMemory = nullptr;
 		vk::raii::Buffer _indexBuffer = nullptr;
 		vk::raii::DeviceMemory _indexBufferMemory = nullptr;
+
+		std::vector<vk::raii::Buffer> _uniformBuffers;
+		std::vector<vk::raii::DeviceMemory> _uniformBuffersMemory;
+		std::vector<void*> _uniformBuffersMapped;
 
 		vk::raii::CommandPool _commandPool = nullptr;
 		std::vector<vk::raii::CommandBuffer> _commandBuffers;

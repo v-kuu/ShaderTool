@@ -60,10 +60,12 @@ void Application::_initVulkan(void)
 	_createLogicalDevice();
 	_createSwapChain();
 	_createImageViews();
+	_createDescriptorSetLayout();
 	_createGraphicsPipeline();
 	_createCommandPool();
 	_createVertexBuffer();
 	_createIndexBuffer();
+	_createUniformBuffers();
 	_createCommandBuffers();
 	_createSyncObjects();
 }
@@ -268,6 +270,23 @@ void Application::_createImageViews(void)
 	}
 }
 
+void Application::_createDescriptorSetLayout(void)
+{
+	vk::DescriptorSetLayoutBinding uboLayoutBinding(
+			0,
+			vk::DescriptorType::eUniformBuffer,
+			1,
+			vk::ShaderStageFlagBits::eVertex,
+			nullptr
+			);
+	vk::DescriptorSetLayoutCreateInfo layoutInfo
+	{
+		.bindingCount = 1,
+		.pBindings = &uboLayoutBinding
+	};
+	_descriptorSetLayout = vk::raii::DescriptorSetLayout(_device, layoutInfo);
+}
+
 void Application::_createGraphicsPipeline(void)
 {
 	vk::raii::ShaderModule shaderModule = _createShaderModule(readFile("shaders/slang.spv"));
@@ -328,7 +347,12 @@ void Application::_createGraphicsPipeline(void)
 		.pDynamicStates = dynamicStates.data()
 	};
 
-	vk::PipelineLayoutCreateInfo pipelineLayoutInfo;
+	vk::PipelineLayoutCreateInfo pipelineLayoutInfo
+	{
+		.setLayoutCount = 1,
+		.pSetLayouts = &*_descriptorSetLayout,
+		.pushConstantRangeCount = 0
+	};
 	_pipelineLayout = vk::raii::PipelineLayout(_device, pipelineLayoutInfo);
 
 	vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo> pipelineCreateInfoChain =
@@ -456,6 +480,45 @@ void Application::_createIndexBuffer(void)
 			);
 
 	_copyBuffer(stagingBuffer, _indexBuffer, bufferSize);
+}
+
+void Application::_createUniformBuffers(void)
+{
+	_uniformBuffers.clear();
+	_uniformBuffersMemory.clear();
+	_uniformBuffersMapped.clear();
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
+		vk::raii::Buffer buffer({});
+		vk::raii::DeviceMemory bufferMem({});
+		_createBuffer(
+				bufferSize,
+				vk::BufferUsageFlagBits::eUniformBuffer,
+				vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+				buffer,
+				bufferMem
+				);
+		_uniformBuffers.emplace_back(std::move(buffer));
+		_uniformBuffersMemory.emplace_back(std::move(bufferMem));
+		_uniformBuffersMapped.emplace_back(_uniformBuffersMemory[i].mapMemory(0, bufferSize));
+	}
+}
+
+void Application::_updateUniformBuffer(uint32_t currentImage)
+{
+	static auto startTime = std::chrono::high_resolution_clock::now();
+
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+	UniformBufferObject ubo{};
+	ubo.model = rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.view = lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(_swapChainExtent.width) / static_cast<float>(_swapChainExtent.height), 0.1f, 10.0f);
+	ubo.proj[1][1] *= -1;
+	memcpy(_uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
 void Application::_copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer, vk::DeviceSize size)
@@ -725,6 +788,7 @@ void Application::_drawFrame(void)
 	_recordCommandBuffer(imageIndex);
 
 	vk::PipelineStageFlags waitDestinationStageMask(vk::PipelineStageFlagBits::eColorAttachmentOutput);
+	_updateUniformBuffer(_frameIndex);
 	const vk::SubmitInfo submitInfo
 	{
 		.waitSemaphoreCount = 1,
