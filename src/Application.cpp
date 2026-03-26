@@ -66,6 +66,8 @@ void Application::_initVulkan(void)
 	_createVertexBuffer();
 	_createIndexBuffer();
 	_createUniformBuffers();
+	_createDescriptorPool();
+	_createDescriptorSets();
 	_createCommandBuffers();
 	_createSyncObjects();
 }
@@ -320,7 +322,7 @@ void Application::_createGraphicsPipeline(void)
 		.rasterizerDiscardEnable = vk::False,
 		.polygonMode = vk::PolygonMode::eFill,
 		.cullMode = vk::CullModeFlagBits::eBack,
-		.frontFace = vk::FrontFace::eClockwise,
+		.frontFace = vk::FrontFace::eCounterClockwise,
 		.depthBiasEnable = vk::False,
 		.depthBiasSlopeFactor = 1.0f,
 		.lineWidth = 1.0f
@@ -506,6 +508,52 @@ void Application::_createUniformBuffers(void)
 	}
 }
 
+void Application::_createDescriptorPool(void)
+{
+	vk::DescriptorPoolSize poolSize(vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT);
+	vk::DescriptorPoolCreateInfo poolInfo
+	{
+		.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
+		.maxSets = MAX_FRAMES_IN_FLIGHT,
+		.poolSizeCount = 1,
+		.pPoolSizes = &poolSize
+	};
+	_descriptorPool = vk::raii::DescriptorPool(_device, poolInfo);
+}
+
+void Application::_createDescriptorSets(void)
+{
+	std::vector<vk::DescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, *_descriptorSetLayout);
+	vk::DescriptorSetAllocateInfo allocInfo
+	{
+		.descriptorPool = _descriptorPool,
+		.descriptorSetCount = static_cast<uint32_t>(layouts.size()),
+		.pSetLayouts = layouts.data()
+	};
+	_descriptorSets.clear();
+	_descriptorSets = _device.allocateDescriptorSets(allocInfo);
+
+	for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+	{
+		vk::DescriptorBufferInfo bufferInfo
+		{
+			.buffer = _uniformBuffers[i],
+			.offset = 0,
+			.range = sizeof(UniformBufferObject)
+		};
+		vk::WriteDescriptorSet descriptorWrite
+		{
+			.dstSet = _descriptorSets[i],
+			.dstBinding = 0,
+			.dstArrayElement = 0,
+			.descriptorCount = 1,
+			.descriptorType = vk::DescriptorType::eUniformBuffer,
+			.pBufferInfo = &bufferInfo
+		};
+		_device.updateDescriptorSets(descriptorWrite, {});
+	}
+}
+
 void Application::_updateUniformBuffer(uint32_t currentImage)
 {
 	static auto startTime = std::chrono::high_resolution_clock::now();
@@ -596,6 +644,7 @@ void Application::_recordCommandBuffer(uint32_t imageIndex)
 	commandBuffer.setScissor(0, vk::Rect2D(vk::Offset2D(0, 0), _swapChainExtent));
 	commandBuffer.bindVertexBuffers(0, *_vertexBuffer, {0});
 	commandBuffer.bindIndexBuffer(*_indexBuffer, 0, vk::IndexType::eUint16);
+	commandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, _pipelineLayout, 0, *_descriptorSets[_frameIndex], nullptr);
 	commandBuffer.drawIndexed(indices.size(), 1, 0, 0, 0);
 	commandBuffer.endRendering();
 	_transitionImageLayout

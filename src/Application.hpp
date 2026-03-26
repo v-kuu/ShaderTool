@@ -76,6 +76,8 @@ class Application
 		void _createVertexBuffer(void);
 		void _createIndexBuffer(void);
 		void _createUniformBuffers(void);
+		void _createDescriptorPool(void);
+		void _createDescriptorSets(void);
 		void _updateUniformBuffer(uint32_t currentImage);
 		void _copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer, vk::DeviceSize size);
 		uint32_t _findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
@@ -122,6 +124,9 @@ class Application
 		std::vector<vk::raii::Buffer> _uniformBuffers;
 		std::vector<vk::raii::DeviceMemory> _uniformBuffersMemory;
 		std::vector<void*> _uniformBuffersMapped;
+
+		vk::raii::DescriptorPool _descriptorPool = nullptr;
+		std::vector<vk::raii::DescriptorSet> _descriptorSets;
 
 		vk::raii::CommandPool _commandPool = nullptr;
 		std::vector<vk::raii::CommandBuffer> _commandBuffers;
