@@ -3,6 +3,7 @@
 # define VK_EXT_DEBUG_REPORT_EXTENSION_NAME "VK_EXT_debug_report"
 #endif
 
+#include <stb_image.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 #include <glm/glm.hpp>

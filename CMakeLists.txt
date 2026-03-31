@@ -41,7 +41,13 @@ FetchContent_Declare(glm
 	GIT_SHALLOW ON
 )
 
-FetchContent_MakeAvailable(SDL3 glm)
+FetchContent_Declare(stb
+	GIT_REPOSITORY https://github.com/nothings/stb.git
+	GIT_TAG master
+	GIT_SHALLOW ON
+)
+
+FetchContent_MakeAvailable(SDL3 glm stb)
 
 find_package(Vulkan REQUIRED)
 
@@ -49,6 +55,7 @@ add_executable(ShaderTool
 	src/main.cpp
 	src/Application.cpp
 	src/Vertex.cpp
+	src/stb_impl.cpp
 )
 
 target_sources(ShaderTool
@@ -58,6 +65,11 @@ target_sources(ShaderTool
 	FILES
 		src/Application.hpp
 		src/Vertex.hpp
+		src/UniformBufferObject.hpp
+)
+
+target_include_directories(ShaderTool
+	PRIVATE ${stb_SOURCE_DIR}
 )
 
 target_link_libraries(ShaderTool
