@@ -74,6 +74,17 @@ class Application
 				vk::raii::Buffer& buffer,
 				vk::raii::DeviceMemory& bufferMemory
 				);
+		void _createTextureImage(void);
+		void _createImage(
+				uint32_t width,
+				uint32_t height,
+				vk::Format format,
+				vk::ImageTiling tiling,
+				vk::ImageUsageFlags usage,
+				vk::MemoryPropertyFlagBits properties,
+				vk::raii::Image &image,
+				vk::raii::DeviceMemory &imageMemory
+				);
 		void _createVertexBuffer(void);
 		void _createIndexBuffer(void);
 		void _createUniformBuffers(void);
@@ -81,6 +92,9 @@ class Application
 		void _createDescriptorSets(void);
 		void _updateUniformBuffer(uint32_t currentImage);
 		void _copyBuffer(vk::raii::Buffer &srcBuffer, vk::raii::Buffer &dstBuffer, vk::DeviceSize size);
+		void _copyBufferToImage(const vk::raii::Buffer &buffer, vk::raii::Image &image, uint32_t width, uint32_t height);
+		vk::raii::CommandBuffer _beginSingleTimeCommands(void);
+		void _endSingleTimeCommands(vk::raii::CommandBuffer &commandBuffer);
 		uint32_t _findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 		void _createCommandBuffers(void);
 		void _recordCommandBuffer(uint32_t imageIndex);
@@ -93,6 +107,7 @@ class Application
 				vk::PipelineStageFlags2 srcStageMask,
 				vk::PipelineStageFlags2 dstStageMask
 				);
+		void _transition_image_layout(const vk::raii::Image &image, vk::ImageLayout oldLayout, vk::ImageLayout newLayout);
 		void _createSyncObjects(void);
 		vk::SurfaceFormatKHR _chooseSwapSurfaceFormat(std::vector<vk::SurfaceFormatKHR> const &availableFormats);
 		vk::PresentModeKHR _chooseSwapPresentMode(const std::vector<vk::PresentModeKHR> &availablePresentModes);
@@ -141,6 +156,9 @@ class Application
 		vk::SurfaceFormatKHR _swapChainSurfaceFormat;
 		vk::Extent2D _swapChainExtent;
 		std::vector<vk::raii::ImageView> _swapChainImageViews;
+
+		vk::raii::Image _textureImage = nullptr;
+		vk::raii::DeviceMemory _textureImageMemory = nullptr;
 
 		bool _running = true;
 		bool _frameBufferResized = false;

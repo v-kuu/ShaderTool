@@ -2,7 +2,8 @@ CompileFlags:
   Add: [
     "-std=c++20",
     "-I../build/_deps/sdl3-src/include",
-    "-I../build/_deps/glm-src"
+    "-I../build/_deps/glm-src",
+    "-I../build/_deps/stb-src"
   ]
 Diagnostics:
   ClangTidy:
