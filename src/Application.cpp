@@ -64,6 +64,8 @@ void Application::_initVulkan(void)
 	_createGraphicsPipeline();
 	_createCommandPool();
 	_createTextureImage();
+	_createTextureImageView();
+	_createTextureSampler();
 	_createVertexBuffer();
 	_createIndexBuffer();
 	_createUniformBuffers();
@@ -188,7 +190,7 @@ void Application::_createLogicalDevice(void)
 		vk::PhysicalDeviceVulkan13Features,
 		vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT> featureChain =
 		{
-			{},
+			{.features = {.samplerAnisotropy = true}},
 			{.shaderDrawParameters = true},
 			{.synchronization2 = true, .dynamicRendering = true},
 			{.extendedDynamicState = true}
@@ -499,6 +501,43 @@ void Application::_createImage(
 	};
 	imageMemory = vk::raii::DeviceMemory(_device, allocInfo);
 	image.bindMemory(imageMemory, 0);
+}
+
+void Application::_createTextureImageView(void)
+{
+	_textureImageView = _createImageView(_textureImage, vk::Format::eR8G8B8A8Srgb);
+}
+
+vk::raii::ImageView Application::_createImageView(vk::raii::Image &image, vk::Format format)
+{
+	vk::ImageViewCreateInfo viewInfo
+	{
+		.image = image,
+		.viewType = vk::ImageViewType::e2D,
+		.format = format,
+		.subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}
+	};
+	return vk::raii::ImageView(_device, viewInfo);
+}
+
+void Application::_createTextureSampler(void)
+{
+	vk::PhysicalDeviceProperties properties = _physicalDevice.getProperties();
+	vk::SamplerCreateInfo samplerInfo
+	{
+		.magFilter = vk::Filter::eLinear,
+		.minFilter = vk::Filter::eLinear,
+		.mipmapMode = vk::SamplerMipmapMode::eLinear,
+		.addressModeU = vk::SamplerAddressMode::eRepeat,
+		.addressModeV = vk::SamplerAddressMode::eRepeat,
+		.addressModeW = vk::SamplerAddressMode::eRepeat,
+		.mipLodBias = 0.0f,
+		.anisotropyEnable = vk::True,
+		.maxAnisotropy = properties.limits.maxSamplerAnisotropy,
+		.compareEnable = vk::False,
+		.compareOp = vk::CompareOp::eAlways
+	};
+	_textureSampler = vk::raii::Sampler(_device, samplerInfo);
 }
 
 void Application::_createVertexBuffer(void)

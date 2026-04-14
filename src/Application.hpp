@@ -75,6 +75,9 @@ class Application
 				vk::raii::DeviceMemory& bufferMemory
 				);
 		void _createTextureImage(void);
+		void _createTextureImageView(void);
+		void _createTextureSampler(void);
+		vk::raii::ImageView _createImageView(vk::raii::Image& image, vk::Format format);
 		void _createImage(
 				uint32_t width,
 				uint32_t height,
@@ -159,6 +162,8 @@ class Application
 
 		vk::raii::Image _textureImage = nullptr;
 		vk::raii::DeviceMemory _textureImageMemory = nullptr;
+		vk::raii::ImageView _textureImageView = nullptr;
+		vk::raii::Sampler _textureSampler = nullptr;
 
 		bool _running = true;
 		bool _frameBufferResized = false;
