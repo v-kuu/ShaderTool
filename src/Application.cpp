@@ -450,8 +450,6 @@ void Application::_createTextureImage(void)
 	stagingBufferMemory.unmapMemory();
 	stbi_image_free(pixels);
 
-	vk::raii::Image textureImageTemp({});
-	vk::raii::DeviceMemory textureImageMemoryTemp({});
 	_createImage(
 		texWidth,
 		texHeight,
@@ -459,8 +457,8 @@ void Application::_createTextureImage(void)
 		vk::ImageTiling::eOptimal,
 		vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
 		vk::MemoryPropertyFlagBits::eDeviceLocal,
-		textureImageTemp,
-		textureImageMemoryTemp
+		_textureImage,
+		_textureImageMemory
 	);
 
 	_transition_image_layout(_textureImage, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal);
