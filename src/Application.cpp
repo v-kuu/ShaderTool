@@ -277,17 +277,27 @@ void Application::_createImageViews(void)
 
 void Application::_createDescriptorSetLayout(void)
 {
-	vk::DescriptorSetLayoutBinding uboLayoutBinding(
+	std::array bindings =
+	{
+		vk::DescriptorSetLayoutBinding(
 			0,
 			vk::DescriptorType::eUniformBuffer,
 			1,
 			vk::ShaderStageFlagBits::eVertex,
 			nullptr
-			);
+		),
+		vk::DescriptorSetLayoutBinding(
+			1,
+			vk::DescriptorType::eCombinedImageSampler,
+			1,
+			vk::ShaderStageFlagBits::eFragment,
+			nullptr
+		)
+	};
 	vk::DescriptorSetLayoutCreateInfo layoutInfo
 	{
-		.bindingCount = 1,
-		.pBindings = &uboLayoutBinding
+		.bindingCount = bindings.size(),
+		.pBindings = bindings.data()
 	};
 	_descriptorSetLayout = vk::raii::DescriptorSetLayout(_device, layoutInfo);
 }
@@ -623,13 +633,17 @@ void Application::_createUniformBuffers(void)
 
 void Application::_createDescriptorPool(void)
 {
-	vk::DescriptorPoolSize poolSize(vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT);
+	std::array poolSize
+	{
+		vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, MAX_FRAMES_IN_FLIGHT),
+		vk::DescriptorPoolSize(vk::DescriptorType::eCombinedImageSampler, MAX_FRAMES_IN_FLIGHT)
+	};
 	vk::DescriptorPoolCreateInfo poolInfo
 	{
 		.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
 		.maxSets = MAX_FRAMES_IN_FLIGHT,
-		.poolSizeCount = 1,
-		.pPoolSizes = &poolSize
+		.poolSizeCount = poolSize.size(),
+		.pPoolSizes = poolSize.data()
 	};
 	_descriptorPool = vk::raii::DescriptorPool(_device, poolInfo);
 }
@@ -654,16 +668,35 @@ void Application::_createDescriptorSets(void)
 			.offset = 0,
 			.range = sizeof(UniformBufferObject)
 		};
-		vk::WriteDescriptorSet descriptorWrite
+		vk::DescriptorImageInfo imageInfo
 		{
-			.dstSet = _descriptorSets[i],
-			.dstBinding = 0,
-			.dstArrayElement = 0,
-			.descriptorCount = 1,
-			.descriptorType = vk::DescriptorType::eUniformBuffer,
-			.pBufferInfo = &bufferInfo
+			.sampler = _textureSampler,
+			.imageView = _textureImageView,
+			.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal
 		};
-		_device.updateDescriptorSets(descriptorWrite, {});
+
+		std::array descriptorWrites
+		{
+			vk::WriteDescriptorSet
+			{
+				.dstSet = _descriptorSets[i],
+				.dstBinding = 0,
+				.dstArrayElement = 0,
+				.descriptorCount = 1,
+				.descriptorType = vk::DescriptorType::eUniformBuffer,
+				.pBufferInfo = &bufferInfo
+			},
+			vk::WriteDescriptorSet
+			{
+				.dstSet = _descriptorSets[i],
+				.dstBinding = 1,
+				.dstArrayElement = 0,
+				.descriptorCount = 1,
+				.descriptorType = vk::DescriptorType::eCombinedImageSampler,
+				.pImageInfo = &imageInfo
+			}
+		};
+		_device.updateDescriptorSets(descriptorWrites, {});
 	}
 }
 
